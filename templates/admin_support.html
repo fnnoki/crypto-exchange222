@@ -136,6 +136,15 @@
             background: #ef4444; color: #fff; border: none; padding: 6px 14px;
             border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;
         }
+        .chat-panel-header .close-chat-btn:hover { background: #dc2626; }
+        .chat-panel-header .close-chat-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .chat-panel-header .block-btn {
+            background: #dc2626; color: #fff; border: none; padding: 6px 12px;
+            border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;
+        }
+        .chat-panel-header .block-btn:hover { background: #b91c1c; }
+        .chat-panel-header .block-btn.unblock { background: #22c55e; }
+        .chat-panel-header .block-btn.unblock:hover { background: #16a34a; }
         .chat-panel-msgs {
             flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px;
         }
@@ -211,7 +220,8 @@
                     <h3 id="chatPanelTitle">Чат</h3>
                     <span id="chatPanelSub" style="font-size:12px;opacity:0.8;"></span>
                 </div>
-                <div style="display:flex;gap:8px;">
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <button class="block-btn" id="blockWalletBtn" onclick="toggleBlockWallet()" style="display:none;">Блок</button>
                     <button class="close-chat-btn" onclick="closeChatSession()">Закрыть чат</button>
                     <button class="close-btn" onclick="closeChatPanel()">✕</button>
                 </div>
@@ -237,6 +247,7 @@
 
     <script>
         let currentChatId = null;
+        let currentWallet = null;
         let adminWs = null;
         let adminPollTimer = null;
         const ADMIN_TOKEN_KEY = 'admin_token';
@@ -326,6 +337,7 @@
                 const time = new Date(s.last_message_time || s.created_at).toLocaleString('ru-RU');
                 const flag = flagDisplay(s.country_code);
                 const ipInfo = s.ip_address ? (flag ? flag + ' — ' : '') + s.ip_address : '';
+                const walletInfo = s.wallet ? '💰 ' + s.wallet.slice(0,4)+'..'+s.wallet.slice(-4) : '';
                 html += `
                     <div class="chat-card ${isActive ? 'active' : 'closed'}" onclick="openChatPanel(${s.id}, '${s.client_name}')">
                         <div class="cc-header">
@@ -333,6 +345,7 @@
                             <span class="cc-status ${isActive ? 'active' : 'closed'}">${isActive ? 'В чате' : 'Закрыт'}</span>
                         </div>
                         ${ipInfo ? '<div class="cc-ip">' + ipInfo + '</div>' : ''}
+                        ${walletInfo ? '<div class="cc-ip">' + walletInfo + '</div>' : ''}
                         <div class="cc-preview">${s.last_message || 'Нет сообщений'}</div>
                         <div class="cc-time">${time}</div>
                     </div>
@@ -429,19 +442,40 @@
             document.getElementById('chatPanelMsgs').innerHTML = '<div class="empty">Загрузка...</div>';
             document.getElementById('chatPanelInput').style.display = 'none';
             document.getElementById('quickReplies').style.display = 'none';
+            const blockBtn = document.getElementById('blockWalletBtn');
+            blockBtn.style.display = 'none';
+            currentWallet = null;
 
-            // Fetch session details for IP/country
             fetch('/api/chat/sessions', { headers: { 'Authorization': 'Bearer ' + checkAuth() } })
                 .then(r => r.json())
                 .then(sessions => {
                     const s = sessions.find(x => x.id === sessionId);
-                    if (s && s.ip_address) {
-                        const flag = flagDisplay(s.country_code);
-                        const ipInfo = flag ? flag + ' — ' + s.ip_address : s.ip_address;
-                        document.getElementById('chatPanelSub').innerHTML = 'Session #' + sessionId + ' — ' + ipInfo;
+                    if (s) {
+                        let subText = 'Session #' + sessionId;
+                        if (s.ip_address) {
+                            const flag = flagDisplay(s.country_code);
+                            const ipInfo = flag ? flag + ' — ' + s.ip_address : s.ip_address;
+                            subText += ' — ' + ipInfo;
+                        }
+                        if (s.wallet) {
+                            subText += ' — 💰 ' + s.wallet.slice(0,4)+'..'+s.wallet.slice(-4);
+                            currentWallet = s.wallet;
+                            // Check if already blocked
+                            fetch('/api/chat/blocked', { headers: { 'Authorization': 'Bearer ' + checkAuth() } })
+                                .then(r => r.json())
+                                .then(blocked => {
+                                    const isBlocked = blocked.some(b => b.wallet === s.wallet);
+                                    blockBtn.textContent = isBlocked ? 'Разблок.' : 'Блок';
+                                    blockBtn.className = 'block-btn' + (isBlocked ? ' unblock' : '');
+                                    blockBtn.style.display = 'inline-block';
+                                }).catch(() => {});
+                        }
+                        document.getElementById('chatPanelSub').innerHTML = subText;
                     }
-                    // Mark as read
                     fetch('/api/chat/read/' + sessionId, { method: 'PATCH', headers: { 'Authorization': 'Bearer ' + checkAuth() } }).catch(()=>{});
+                    if (s.status === 'closed') {
+                        document.getElementById('chatPanelInput').style.display = 'none';
+                    }
                 })
                 .catch(() => {});
 
@@ -456,6 +490,29 @@
             if (adminWs) { adminWs.close(); adminWs = null; }
             if (adminPollTimer) { clearInterval(adminPollTimer); adminPollTimer = null; }
             currentChatId = null;
+            currentWallet = null;
+        }
+
+        async function toggleBlockWallet() {
+            if (!currentWallet) return;
+            const btn = document.getElementById('blockWalletBtn');
+            const isBlocked = btn.classList.contains('unblock');
+            const token = checkAuth();
+            try {
+                if (isBlocked) {
+                    await fetch('/api/chat/unblock', { method: 'POST', headers: {'Content-Type':'application/json','Authorization':'Bearer '+token}, body: JSON.stringify({wallet: currentWallet}) });
+                    btn.textContent = 'Блок';
+                    btn.className = 'block-btn';
+                    addAdminMessage('admin', '✅ Кошелек разблокирован');
+                } else {
+                    await fetch('/api/chat/block', { method: 'POST', headers: {'Content-Type':'application/json','Authorization':'Bearer '+token}, body: JSON.stringify({wallet: currentWallet, reason: 'Заблокирован администратором'}) });
+                    btn.textContent = 'Разблок.';
+                    btn.className = 'block-btn unblock';
+                    addAdminMessage('admin', '🚫 Кошелек заблокирован');
+                    document.getElementById('chatPanelInput').style.display = 'none';
+                }
+                loadChatSessions();
+            } catch(e) { alert('Ошибка'); }
         }
 
         async function loadChatMessages(sessionId) {
@@ -556,6 +613,7 @@
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 document.getElementById('chatPanelInput').style.display = 'none';
+                document.querySelector('.close-chat-btn').disabled = true;
                 addAdminMessage('admin', '⚠️ Чат закрыт администратором');
                 loadChatSessions();
             } catch (e) { alert('Ошибка'); }

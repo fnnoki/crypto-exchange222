@@ -1547,7 +1547,7 @@
             document.getElementById('chatWidgetStart').innerHTML = '<p style="color:#888;">Подключение...</p>';
             try {
                 const chatName = phantomPublicKey ? phantomPublicKey.slice(0,4)+'..'+phantomPublicKey.slice(-4) : 'Клиент';
-                const resp = await fetch('/api/chat/create', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({name:chatName,email:'',message:''}) });
+                const resp = await fetch('/api/chat/create', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({name:chatName,email:'',message:'',wallet:phantomPublicKey||''}) });
                 if (!resp.ok) { document.getElementById('chatWidgetStart').innerHTML = '<p style="color:#ef4444;">Ошибка сервера</p>'; return; }
                 const data = await resp.json();
                 widgetSessionId = data.session_id;

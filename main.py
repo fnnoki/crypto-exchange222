@@ -455,6 +455,7 @@ class ChatSession(Base):
     ip_address = Column(String(45), default="")
     country_code = Column(String(2), default="")
     country_name = Column(String(100), default="")
+    wallet = Column(String(100), default="")
     created_at = Column(DateTime, default=datetime.now)
 
 class ChatMessage(Base):
@@ -470,6 +471,14 @@ class Country(Base):
     code = Column(String(2), primary_key=True)
     name = Column(String(100))
     name_ru = Column(String(100))
+
+class BlockedWallet(Base):
+    __tablename__ = "blocked_wallets"
+    id = Column(Integer, primary_key=True, index=True)
+    wallet = Column(String(100), unique=True, index=True)
+    reason = Column(String(200), default="")
+    blocked_at = Column(DateTime, default=datetime.now)
+    blocked_by = Column(String, default="")
 
 Base.metadata.create_all(bind=engine)
 
@@ -489,6 +498,12 @@ except Exception:
 try:
     with engine.connect() as conn:
         conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN country_name VARCHAR(100) DEFAULT ''"))
+        conn.commit()
+except Exception:
+    pass
+try:
+    with engine.connect() as conn:
+        conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN wallet VARCHAR(100) DEFAULT ''"))
         conn.commit()
 except Exception:
     pass
@@ -1431,6 +1446,13 @@ async def update_support_ticket(ticket_id: int, update: TicketUpdate, db: Sessio
 async def create_chat_session(request: Request, db: Session = Depends(get_db)):
     try:
         body = await request.json()
+        wallet = body.get("wallet", "")
+
+        # Check if wallet is blocked
+        if wallet:
+            blocked = db.query(BlockedWallet).filter(BlockedWallet.wallet == wallet).first()
+            if blocked:
+                raise HTTPException(status_code=403, detail="Ваш кошелек заблокирован. " + (blocked.reason or ""))
 
         # Get real client IP from X-Forwarded-For (Render proxy) or fallback
         forwarded = request.headers.get("x-forwarded-for", "")
@@ -1456,6 +1478,7 @@ async def create_chat_session(request: Request, db: Session = Depends(get_db)):
             ip_address=client_ip,
             country_code=country_code,
             country_name=country_name,
+            wallet=wallet,
             status="active"
         )
         db.add(session)
@@ -1475,6 +1498,8 @@ async def create_chat_session(request: Request, db: Session = Depends(get_db)):
             db.commit()
 
         return {"session_id": session.id, "status": "active"}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Chat create error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
@@ -1499,11 +1524,12 @@ async def get_chat_sessions(db: Session = Depends(get_db), _=Depends(require_adm
             "id": s.id,
             "client_name": s.client_name,
             "email": s.email,
+            "status": s.status,
+            "unread": s.unread,
             "ip_address": s.ip_address or "",
             "country_code": s.country_code or "",
             "country_name": s.country_name or "",
-            "status": s.status,
-            "unread": s.unread,
+            "wallet": s.wallet or "",
             "messages_count": msg_count,
             "last_message": last_msg.message[:80] if last_msg else "",
             "last_message_time": last_msg.created_at.isoformat() if last_msg else s.created_at.isoformat(),
@@ -1530,6 +1556,52 @@ async def close_chat_session(session_id: int, db: Session = Depends(get_db), _=D
     db.commit()
     await manager.broadcast(session_id, {"type": "closed"})
     return {"status": "closed"}
+
+@app.post("/api/chat/block")
+async def block_wallet(request: Request, db: Session = Depends(get_db), _=Depends(require_admin)):
+    try:
+        body = await request.json()
+        wallet = body.get("wallet", "").strip()
+        reason = body.get("reason", "").strip()
+        if not wallet:
+            raise HTTPException(status_code=400, detail="Укажите кошелек")
+        existing = db.query(BlockedWallet).filter(BlockedWallet.wallet == wallet).first()
+        if existing:
+            return {"status": "already_blocked"}
+        blocked = BlockedWallet(wallet=wallet, reason=reason, blocked_by="admin")
+        db.add(blocked)
+        db.commit()
+        # Close all active sessions from this wallet
+        sessions = db.query(ChatSession).filter(ChatSession.wallet == wallet, ChatSession.status == "active").all()
+        for s in sessions:
+            s.status = "closed"
+            await manager.broadcast(s.id, {"type": "closed"})
+        db.commit()
+        return {"status": "blocked"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/chat/unblock")
+async def unblock_wallet(request: Request, db: Session = Depends(get_db), _=Depends(require_admin)):
+    try:
+        body = await request.json()
+        wallet = body.get("wallet", "").strip()
+        if not wallet:
+            raise HTTPException(status_code=400, detail="Укажите кошелек")
+        blocked = db.query(BlockedWallet).filter(BlockedWallet.wallet == wallet).first()
+        if blocked:
+            db.delete(blocked)
+            db.commit()
+        return {"status": "unblocked"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/api/chat/blocked")
+async def get_blocked_wallets(db: Session = Depends(get_db), _=Depends(require_admin)):
+    wallets = db.query(BlockedWallet).order_by(BlockedWallet.blocked_at.desc()).all()
+    return [{"wallet": w.wallet, "reason": w.reason, "blocked_at": w.blocked_at.isoformat()} for w in wallets]
 
 @app.patch("/api/chat/read/{session_id}")
 async def mark_chat_read(session_id: int, db: Session = Depends(get_db), _=Depends(require_admin)):
