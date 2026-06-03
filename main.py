@@ -887,33 +887,48 @@ def fetch_coin_usdt(asset: str):
         return None
     coin_usdt = None
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-    # Try multiple public APIs in order — any that work from Render
+    known = {"SOLUSDT": "SOL_USDT", "ETHUSDT": "ETH_USDT", "ARBUSDT": "ARB_USDT", "BNBUSDT": "BNB_USDT"}
+    gate_pair = known.get(symbol, symbol[:3] + "_" + symbol[3:])
+
+    def _safe(fn):
+        try:
+            return fn()
+        except Exception:
+            return None
+
+    def _get(data, *keys):
+        for k in keys:
+            if isinstance(data, dict) and k in data and data[k] is not None:
+                data = data[k]
+            else:
+                return None
+        return data
+
     apis = [
-        f'https://api.bybit.com/v5/market/tickers?category=spot&symbol={symbol}',
-        f'https://api.kucoin.com/api/v1/market/orderbook/level1?symbol={symbol}',
-        f'https://api.mexc.com/api/v3/ticker/price?symbol={symbol}',
-        f'https://api.gateio.ws/api/v4/spot/tickers?currency_pair={symbol[:3]}_{symbol[3:]}',
-        f'https://www.okx.com/api/v5/market/ticker?instId={symbol}',
-        f'https://api.binance.com/api/v3/ticker/price?symbol={symbol}',
+        (f'https://api.bybit.com/v5/market/tickers?category=spot&symbol={symbol}',
+         lambda d: _safe(lambda: float(_get(d, 'result', 'list', 0, 'lastPrice'))) if d.get('retCode') == 0 else None),
+        (f'https://api.kucoin.com/api/v1/market/orderbook/level1?symbol={symbol}',
+         lambda d: _safe(lambda: float(_get(d, 'data', 'price'))) if d.get('code') == '200000' else None),
+        (f'https://api.mexc.com/api/v3/ticker/price?symbol={symbol}',
+         lambda d: _safe(lambda: float(_get(d, 'price')))),
+        (f'https://api.gateio.ws/api/v4/spot/tickers?currency_pair={gate_pair}',
+         lambda d: _safe(lambda: float(_get(d[0], 'last'))) if isinstance(d, list) and len(d) > 0 else None),
+        (f'https://www.okx.com/api/v5/market/ticker?instId={symbol}',
+         lambda d: _safe(lambda: float(_get(d, 'data', 0, 'last'))) if d.get('code') == '0' else None),
+        (f'https://api.binance.com/api/v3/ticker/price?symbol={symbol}',
+         lambda d: _safe(lambda: float(_get(d, 'price')))),
     ]
-    parsers = [
-        lambda d: float(d['result']['list'][0]['lastPrice']) if d.get('retCode') == 0 else None,
-        lambda d: float(d['data']['price']) if d.get('code') == '200000' else None,
-        lambda d: float(d['price']) if 'price' in d else None,
-        lambda d: float(d[0]['last']) if isinstance(d, list) and len(d) > 0 else None,
-        lambda d: float(d['data'][0]['last']) if d.get('code') == '0' else None,
-        lambda d: float(d['price']) if 'price' in d else None,
-    ]
-    for i, url in enumerate(apis):
+    for i, (url, parser) in enumerate(apis):
         try:
             resp = requests.get(url, headers=headers, timeout=8)
+            resp.raise_for_status()
             data = resp.json()
-            price = parsers[i](data)
+            price = parser(data)
             if price and price > 0:
                 coin_usdt = price
                 break
         except Exception as e:
-            logger.warning(f"API {i} ({url.split('/')[2]}) for {symbol} failed: {e}")
+            logger.warning(f"API {i} ({url.split('/')[2]}) for {symbol}: {e}")
             continue
     if coin_usdt:
         _cache[cache_key] = {"val": coin_usdt, "ts": time.time()}
