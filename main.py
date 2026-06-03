@@ -875,7 +875,7 @@ async def get_currencies():
     }
 
 def fetch_coin_usdt(asset: str):
-    """Get coin price in USDT from Bybit (primary) or Binance (fallback).
+    """Get coin price in USDT — tries multiple public APIs (no key needed).
     Uses shared cache. Returns float or None."""
     cache_key = f"coin_usdt:{asset}"
     cached = _cache.get(cache_key)
@@ -886,22 +886,35 @@ def fetch_coin_usdt(asset: str):
     if not symbol:
         return None
     coin_usdt = None
-    try:
-        resp = requests.get(f'https://api.bybit.com/v5/market/tickers?category=spot&symbol={symbol}', timeout=10)
-        data = resp.json()
-        if data.get('retCode') == 0:
-            coin_usdt = float(data['result']['list'][0]['lastPrice'])
-    except Exception as e:
-        logger.warning(f"Bybit {symbol} failed: {e}")
-    if not coin_usdt:
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+    # Try multiple public APIs in order — any that work from Render
+    apis = [
+        f'https://api.bybit.com/v5/market/tickers?category=spot&symbol={symbol}',
+        f'https://api.kucoin.com/api/v1/market/orderbook/level1?symbol={symbol}',
+        f'https://api.mexc.com/api/v3/ticker/price?symbol={symbol}',
+        f'https://api.gateio.ws/api/v4/spot/tickers?currency_pair={symbol[:3]}_{symbol[3:]}',
+        f'https://www.okx.com/api/v5/market/ticker?instId={symbol}',
+        f'https://api.binance.com/api/v3/ticker/price?symbol={symbol}',
+    ]
+    parsers = [
+        lambda d: float(d['result']['list'][0]['lastPrice']) if d.get('retCode') == 0 else None,
+        lambda d: float(d['data']['price']) if d.get('code') == '200000' else None,
+        lambda d: float(d['price']) if 'price' in d else None,
+        lambda d: float(d[0]['last']) if isinstance(d, list) and len(d) > 0 else None,
+        lambda d: float(d['data'][0]['last']) if d.get('code') == '0' else None,
+        lambda d: float(d['price']) if 'price' in d else None,
+    ]
+    for i, url in enumerate(apis):
         try:
-            resp = requests.get(f'https://api.binance.com/api/v3/ticker/price?symbol={symbol}', headers=headers, timeout=10)
+            resp = requests.get(url, headers=headers, timeout=8)
             data = resp.json()
-            if 'price' in data:
-                coin_usdt = float(data['price'])
+            price = parsers[i](data)
+            if price and price > 0:
+                coin_usdt = price
+                break
         except Exception as e:
-            logger.warning(f"Binance {symbol} also failed: {e}")
+            logger.warning(f"API {i} ({url.split('/')[2]}) for {symbol} failed: {e}")
+            continue
     if coin_usdt:
         _cache[cache_key] = {"val": coin_usdt, "ts": time.time()}
     return coin_usdt
