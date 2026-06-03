@@ -1508,6 +1508,26 @@
             if (!open && widgetWs) { widgetWs.close(); widgetWs = null; }
         }
 
+        let widgetPollTimer = null;
+
+        function startWidgetPoll(sessionId) {
+            let lastId = 0;
+            if (widgetPollTimer) clearInterval(widgetPollTimer);
+            widgetPollTimer = setInterval(async () => {
+                try {
+                    const r = await fetch(`/api/chat/poll/${sessionId}?since_id=${lastId}`);
+                    const msgs = await r.json();
+                    msgs.forEach(m => {
+                        if (m.sender !== 'client') {
+                            addWidgetMsg(m.sender, m.message, m.created_at);
+                            playNotifySound();
+                        }
+                        if (m.id > lastId) lastId = m.id;
+                    });
+                } catch(e) {}
+            }, 3000);
+        }
+
         async function startChat() {
             document.getElementById('chatWidgetStart').innerHTML = '<p style="color:#888;">Подключение...</p>';
             try {
@@ -1517,14 +1537,11 @@
                 const data = await resp.json();
                 widgetSessionId = data.session_id;
                 document.getElementById('chatWidgetMsgs').innerHTML = '';
+                document.getElementById('chatWidgetInput').style.display = 'flex';
+                document.getElementById('chatWidgetStart').innerHTML = '';
                 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
                 const host = window.location.host || 'localhost:8000';
                 widgetWs = new WebSocket(`${protocol}//${host}/ws/chat/${widgetSessionId}`);
-                widgetWs.onopen = () => {
-                    document.getElementById('chatWidgetInput').style.display = 'flex';
-                    document.getElementById('chatWidgetStart').innerHTML = '';
-                    if (phantomPublicKey) setTimeout(updateChatWalletInfo, 500);
-                };
                 widgetWs.onmessage = (e) => {
                     const d = JSON.parse(e.data);
                     if (d.type === 'message' && d.sender !== 'client') {
@@ -1532,7 +1549,9 @@
                         playNotifySound();
                     } else if (d.type === 'closed') { addWidgetMsg('admin', '⚠️ Чат закрыт'); document.getElementById('chatWidgetInput').style.display = 'none'; }
                 };
-                widgetWs.onerror = () => { document.getElementById('chatWidgetStart').innerHTML = '<p style="color:#ef4444;">Ошибка WebSocket</p>'; };
+                widgetWs.onerror = () => {};
+                startWidgetPoll(widgetSessionId);
+                if (phantomPublicKey) setTimeout(updateChatWalletInfo, 500);
             } catch (e) { document.getElementById('chatWidgetStart').innerHTML = '<p style="color:#ef4444;">Ошибка подключения</p>'; }
         }
 
@@ -1578,11 +1597,15 @@
             }
         }, { once: true });
 
-        function sendWidgetMsg() {
+        async function sendWidgetMsg() {
             const input = document.getElementById('chatWidgetInputField');
             const text = input.value.trim();
-            if (!text || !widgetWs || widgetWs.readyState !== WebSocket.OPEN) return;
-            widgetWs.send(JSON.stringify({message: text}));
+            if (!text || !widgetSessionId) return;
+            if (widgetWs && widgetWs.readyState === WebSocket.OPEN) {
+                widgetWs.send(JSON.stringify({message: text}));
+            } else {
+                try { await fetch('/api/chat/send', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({session_id:widgetSessionId, message:text}) }); } catch(e) {}
+            }
             addWidgetMsg('client', text);
             input.value = '';
         }

@@ -1277,6 +1277,42 @@ async def mark_chat_read(session_id: int, db: Session = Depends(get_db), _=Depen
         db.commit()
     return {"ok": True}
 
+@app.post("/api/chat/send")
+async def send_chat_message(request: Request, db: Session = Depends(get_db)):
+    try:
+        body = await request.json()
+        session_id = body.get("session_id")
+        message = body.get("message", "").strip()
+        if not session_id or not message:
+            raise HTTPException(status_code=400, detail="Missing session_id or message")
+        session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        auth = request.headers.get("authorization", "")
+        is_admin = False
+        if auth:
+            token = auth.replace("Bearer ", "")
+            is_admin = verify_admin_token(token)
+        sender = "admin" if is_admin else "client"
+        msg = ChatMessage(session_id=session_id, sender=sender, message=message)
+        db.add(msg)
+        db.commit()
+        db.refresh(msg)
+        if not is_admin:
+            session.unread = (session.unread or 0) + 1
+            db.commit()
+        await manager.broadcast(session_id, {"type": "message", "id": msg.id, "sender": sender, "message": message, "created_at": msg.created_at.isoformat(), "ip_address": session.ip_address or "", "country_code": session.country_code or "", "country_name": session.country_name or ""})
+        return {"id": msg.id, "sender": sender, "message": message, "created_at": msg.created_at.isoformat()}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/api/chat/poll/{session_id}")
+async def poll_chat_messages(session_id: int, since_id: int = 0, db: Session = Depends(get_db)):
+    msgs = db.query(ChatMessage).filter(ChatMessage.session_id == session_id, ChatMessage.id > since_id).order_by(ChatMessage.created_at).all()
+    return [{"id": m.id, "sender": m.sender, "message": m.message, "created_at": m.created_at.isoformat()} for m in msgs]
+
 @app.websocket("/ws/chat/{session_id}")
 async def chat_websocket(websocket: WebSocket, session_id: int, token: Optional[str] = ""):
     db = SessionLocal()

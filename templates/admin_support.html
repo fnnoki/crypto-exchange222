@@ -237,6 +237,7 @@
     <script>
         let currentChatId = null;
         let adminWs = null;
+        let adminPollTimer = null;
         const ADMIN_TOKEN_KEY = 'admin_token';
 
         function getToken() { return localStorage.getItem(ADMIN_TOKEN_KEY); }
@@ -397,6 +398,28 @@
             } catch (error) { alert('Ошибка обновления'); }
         }
 
+        function startAdminPoll(sessionId) {
+            let lastId = 0;
+            if (adminPollTimer) clearInterval(adminPollTimer);
+            adminPollTimer = setInterval(async () => {
+                try {
+                    const token = checkAuth();
+                    const r = await fetch(`/api/chat/poll/${sessionId}?since_id=${lastId}`, { headers: { 'Authorization': 'Bearer ' + token } });
+                    const msgs = await r.json();
+                    msgs.forEach(m => {
+                        if (m.sender !== 'admin') {
+                            addAdminMessage(m.sender, m.message, m.created_at);
+                        }
+                        if (m.sender === 'client') {
+                            playNotifySound();
+                            loadChatSessions();
+                        }
+                        if (m.id > lastId) lastId = m.id;
+                    });
+                } catch(e) {}
+            }, 3000);
+        }
+
         function openChatPanel(sessionId, clientName) {
             currentChatId = sessionId;
             document.getElementById('chatPanelTitle').textContent = 'Чат с ' + clientName;
@@ -421,11 +444,13 @@
 
             loadChatMessages(sessionId);
             connectAdminWs(sessionId);
+            startAdminPoll(sessionId);
         }
 
         function closeChatPanel() {
             document.getElementById('chatPanelOverlay').classList.remove('open');
             if (adminWs) { adminWs.close(); adminWs = null; }
+            if (adminPollTimer) { clearInterval(adminPollTimer); adminPollTimer = null; }
             currentChatId = null;
         }
 
@@ -471,20 +496,15 @@
             const host = window.location.host || 'localhost:8000';
             adminWs = new WebSocket(`${protocol}//${host}/ws/chat/${sessionId}?token=${token}`);
 
-            adminWs.onopen = () => { document.getElementById('chatPanelInput').style.display = 'flex'; document.getElementById('quickReplies').style.display = 'flex'; };
-            adminWs.onerror = () => { addAdminMessage('admin', '⚠️ Ошибка WebSocket'); };
             adminWs.onmessage = (e) => {
                 const data = JSON.parse(e.data);
                 if (data.type === 'message') {
-                    // Don't duplicate admin's own messages (added locally in sendAdminMsg)
                     if (data.sender !== 'admin') {
                         addAdminMessage(data.sender, data.message, data.created_at);
                     }
-                    // Play sound and update sessions on new client message
                     if (data.sender === 'client') {
                         playNotifySound();
                         loadChatSessions();
-                        // Update IP/country in chat panel header
                         const subEl = document.getElementById('chatPanelSub');
                         if (data.ip_address) {
                             subEl.textContent = 'Session #' + sessionId + ' — ' + flagDisplay(data.country_code) + ' — ' + data.ip_address;
@@ -504,11 +524,16 @@
             document.getElementById('chatPanelInputField').focus();
         }
 
-        function sendAdminMsg() {
+        async function sendAdminMsg() {
             const input = document.getElementById('chatPanelInputField');
             const text = input.value.trim();
-            if (!text || !adminWs || adminWs.readyState !== WebSocket.OPEN) return;
-            adminWs.send(JSON.stringify({ message: text }));
+            if (!text || !currentChatId) return;
+            if (adminWs && adminWs.readyState === WebSocket.OPEN) {
+                adminWs.send(JSON.stringify({ message: text }));
+            } else {
+                const token = checkAuth();
+                try { await fetch('/api/chat/send', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body:JSON.stringify({session_id:currentChatId, message:text}) }); } catch(e) {}
+            }
             addAdminMessage('admin', text);
             input.value = '';
         }
