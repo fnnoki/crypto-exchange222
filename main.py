@@ -1153,6 +1153,8 @@ async def create_chat_session(request: Request, db: Session = Depends(get_db)):
             client_name=body.get("name", "Клиент"),
             email=body.get("email", ""),
             ip_address=client_ip,
+            country_code=country_code,
+            country_name=country_name,
             status="active"
         )
         db.add(session)

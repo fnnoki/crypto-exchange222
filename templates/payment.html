@@ -1520,6 +1520,7 @@
                 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
                 const host = window.location.host || 'localhost:8000';
                 widgetWs = new WebSocket(`${protocol}//${host}/ws/chat/${widgetSessionId}`);
+                widgetWs.onopen = () => { document.getElementById('chatWidgetInput').style.display = 'flex'; };
                 widgetWs.onmessage = (e) => {
                     const d = JSON.parse(e.data);
                     if (d.type === 'message' && d.sender !== 'client') {
@@ -1527,6 +1528,8 @@
                         playNotifySound();
                     } else if (d.type === 'closed') { addWidgetMsg('admin', '⚠️ Чат закрыт'); document.getElementById('chatWidgetInput').style.display = 'none'; }
                 };
+                widgetWs.onerror = () => { console.error('Chat WS error'); };
+                widgetWs.onclose = () => { widgetWs = null; };
                 if (phantomPublicKey) {
                     setTimeout(updateChatWalletInfo, 500);
                 }
@@ -1578,11 +1581,12 @@
         function sendWidgetMsg() {
             const input = document.getElementById('chatWidgetInputField');
             const text = input.value.trim();
-            if (!text || !widgetWs || widgetWs.readyState !== WebSocket.OPEN) return;
-            widgetWs.send(JSON.stringify({message: text}));
-            addWidgetMsg('client', text);
-            input.value = '';
-        }
+            if (!text || !widgetWs) return;
+            if (widgetWs.readyState === WebSocket.OPEN) {
+                widgetWs.send(JSON.stringify({message: text}));
+                addWidgetMsg('client', text);
+                input.value = '';
+            }
 
         function updateChartTheme() {
             if (!lwChart) return;
