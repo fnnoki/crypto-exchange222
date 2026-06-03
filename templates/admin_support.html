@@ -445,6 +445,7 @@
             const blockBtn = document.getElementById('blockWalletBtn');
             blockBtn.style.display = 'none';
             currentWallet = null;
+            document.querySelector('.close-chat-btn').disabled = false;
 
             fetch('/api/chat/sessions', { headers: { 'Authorization': 'Bearer ' + checkAuth() } })
                 .then(r => r.json())
@@ -473,7 +474,7 @@
                         document.getElementById('chatPanelSub').innerHTML = subText;
                     }
                     fetch('/api/chat/read/' + sessionId, { method: 'PATCH', headers: { 'Authorization': 'Bearer ' + checkAuth() } }).catch(()=>{});
-                    if (s.status === 'closed') {
+                    if (s && s.status === 'closed') {
                         document.getElementById('chatPanelInput').style.display = 'none';
                     }
                 })
