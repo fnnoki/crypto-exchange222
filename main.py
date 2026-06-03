@@ -952,6 +952,13 @@ async def get_usdt_rate(currency: str = "RUB", asset: str = "USDT"):
                 except Exception:
                     logger.warning(f"Bybit {asset_upper} also failed")
 
+            # Hardcoded coin price fallback
+            if not coin_usdt:
+                hardcoded_prices = {"SOL": 150, "ETH": 1900, "ARB": 0.70, "BNB": 580}
+                coin_usdt = hardcoded_prices.get(asset_upper)
+                if coin_usdt:
+                    logger.info(f"Using hardcoded price for {asset_upper}: ${coin_usdt}")
+
             if coin_usdt and coin_usdt > 0 and usdt_fiat:
                 rate = round(coin_usdt * usdt_fiat, 6)
                 buy_rate = round(rate * (1 - COMMISSION_PERCENT / 100), 2)
