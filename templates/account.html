@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Личный кабинет</title>
+    <style>
+        :root{--bg-body:#0a0a0a;--bg-card:#1a1a1a;--bg-card-alt:#222;--border:#333;--text-primary:#fff;--text-secondary:#ccc;--text-dim:#888;--text-dimmer:#666}[data-theme="light"]{--bg-body:#f0f2f5;--bg-card:#fff;--bg-card-alt:#f5f7fa;--border:#d0d0d0;--text-primary:#111;--text-secondary:#333;--text-dim:#777;--text-dimmer:#999}
+        .theme-toggle{position:fixed;top:16px;left:20px;z-index:999;padding:6px 12px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border);cursor:pointer;font-size:13px;transition:.3s;color:var(--text-primary);font-family:inherit;white-space:nowrap}.theme-toggle:hover{background:var(--bg-card-alt)}
+        .home-btn{position:fixed;top:14px;left:20px;z-index:999;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .3s;text-decoration:none}.home-btn:hover{transform:scale(1.1)}.home-btn img{width:32px;height:32px;object-fit:contain;filter:invert(1)}[data-theme="light"] .home-btn img{filter:none}
+        [data-theme="light"] .empty{color:#666}[data-theme="light"] .info-label{color:#666}[data-theme="light"] .info-value{color:#111}[data-theme="light"] .order-card{border-color:#d0d0d0}[data-theme="light"] .order-card .status{padding:2px 10px;border-radius:10px;font-size:11px;font-weight:600}[data-theme="light"] .order-card .status.pending{background:#fef3c7;color:#d97706}[data-theme="light"] .order-card .status.paid{background:#dcfce7;color:#16a34a}[data-theme="light"] .order-card .status.canceled{background:#fee2e2;color:#dc2626}
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg-body);padding:20px;color:var(--text-primary)}
+        .container{max-width:700px;margin:0 auto}
+        h1{text-align:center;margin-bottom:10px;font-size:26px}
+        .sub{text-align:center;color:var(--text-dim);font-size:13px;margin-bottom:25px}
+        .connect-msg{text-align:center;padding:40px;background:var(--bg-card);border-radius:16px;border:1px solid var(--border)}
+        .connect-msg p{color:var(--text-dim);margin-bottom:15px;font-size:15px;line-height:1.5}
+        .connect-btn{padding:12px 30px;background:#333;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:transform .2s}
+        .connect-btn:hover{transform:translateY(-2px)}
+        [data-theme="light"] .connect-btn { background: #e5e7eb; color: #000; }
+        .empty{text-align:center;padding:40px;color:var(--text-dimmer);font-size:14px}
+        .order-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+        .order-card .info{flex:1;min-width:200px}
+        .order-card .oid{font-weight:600;font-size:14px}
+        .order-card .date{color:var(--text-dim);font-size:12px;margin-top:2px}
+        .order-card .details{color:var(--text-secondary);font-size:13px;margin-top:4px;display:flex;gap:12px;flex-wrap:wrap}
+        .order-card .status{padding:2px 10px;border-radius:10px;font-size:11px;font-weight:600}
+        .order-card .status.pending{background:#7f1d1d;color:#fca5a5}
+        .order-card .status.paid{background:#052e16;color:#22c55e}
+        .order-card .status.canceled{background:#450a0a;color:#fca5a5}
+        .order-card .addr{font-family:monospace;font-size:11px;color:var(--text-dimmer)}
+        .nav-links{text-align:center;margin-top:25px}
+        .nav-links a{color:#4f46e5;text-decoration:none;font-size:14px;margin:0 8px}
+        @media(max-width:480px){.order-card{flex-direction:column;align-items:stretch}}
+    </style>
+</head>
+<body>
+    <a href="/" class="home-btn" title="На главную"><img src="/static/logo.webp" alt="Home"></a>
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Сменить тему">
+            <svg class="theme-moon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            <svg class="theme-sun" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+    <div class="container">
+        <h1>Личный кабинет</h1>
+        <div class="sub">Ваши заказы и история операций</div>
+        <div id="content"></div>
+        <div class="nav-links">
+            <a href="/">На главную</a>
+            <a href="/track">Статус заказа</a>
+        </div>
+    </div>
+    <script src="https://unpkg.com/@solana/web3.js@1.98.0/lib/index.iife.min.js"></script>
+    <script>
+        function getPhantomProvider() {
+            if ('phantom' in window) return window.phantom?.solana;
+            if ('solana' in window) return window.solana;
+            return null;
+        }
+
+        let publicKey = null;
+
+        async function connectWallet() {
+            try {
+                const provider = getPhantomProvider();
+                if (!provider) { document.getElementById('content').innerHTML = '<div class="connect-msg"><p>Установите Phantom: <a href="https://phantom.app" target="_blank">phantom.app</a></p></div>'; return; }
+                const resp = await provider.connect();
+                publicKey = resp.publicKey.toString();
+                localStorage.setItem('phantom_wallet', publicKey);
+                loadOrders(publicKey);
+            } catch (e) {
+                document.getElementById('content').innerHTML = '<div class="connect-msg"><p>Ошибка подключения: ' + e.message + '</p></div>';
+            }
+        }
+
+        function shortAddr(addr) { return addr.slice(0,4)+'..'+addr.slice(-4); }
+
+        async function loadOrders(wallet) {
+            const el = document.getElementById('content');
+            try {
+                const resp = await fetch('/api/orders/my/' + wallet);
+                const orders = await resp.json();
+                if (orders.length === 0) {
+                    el.innerHTML = '<div class="connect-msg"><p style="margin-bottom:5px;font-size:14px;color:var(--text-primary);">Кошелёк: ' + shortAddr(wallet) + '</p><p>У вас пока нет заказов</p></div>';
+                    return;
+                }
+                let html = '<div class="connect-msg" style="padding:12px;margin-bottom:15px;text-align:left;"><span style="color:var(--text-dim);font-size:13px;">Кошелёк: </span><span style="font-size:13px;">' + shortAddr(wallet) + '</span><span style="float:right;color:var(--text-dim);font-size:13px;">Всего заказов: ' + orders.length + '</span></div>';
+                const statusMap = {pending:'Ожидает оплаты',paid:'Оплачено',canceled:'Отменён'};
+                const typeMap = {buy:'Покупка',sell:'Продажа'};
+                orders.forEach(o => {
+                    const date = new Date(o.created_at).toLocaleString('ru-RU');
+                    const type = typeMap[o.order_type] || o.order_type;
+                    const asset = o.asset_type || 'USDT';
+                    const amount = o.amount_rub ? o.amount_rub.toFixed(2) + ' ' + o.currency : '—';
+                    html += '<div class="order-card" onclick="location.href=\'/?order_id=' + o.order_id + '\'" style="cursor:pointer;">' +
+                        '<div class="info">' +
+                            '<div class="oid">#' + o.order_id + ' <span style="color:var(--text-dim);font-weight:400;font-size:12px;">' + type + ' ' + asset + '</span></div>' +
+                            '<div class="date">' + date + '</div>' +
+                            '<div class="details"><span>' + o.amount_usdt + ' ' + asset + '</span><span>→ ' + amount + '</span></div>' +
+                            '<div class="addr">' + (o.deposit_address || '') + '</div>' +
+                        '</div>' +
+                        '<span class="status ' + o.status + '">' + (statusMap[o.status] || o.status) + '</span>' +
+                    '</div>';
+                });
+                el.innerHTML = html;
+            } catch (e) {
+                el.innerHTML = '<div class="connect-msg"><p>Ошибка загрузки: ' + e.message + '</p></div>';
+            }
+        }
+
+        (function init() {
+            const saved = localStorage.getItem('phantom_wallet');
+            if (saved) {
+                publicKey = saved;
+                loadOrders(saved);
+            } else {
+                const provider = getPhantomProvider();
+                if (provider) {
+                    document.getElementById('content').innerHTML = '<div class="connect-msg"><p>Подключите кошелёк, чтобы увидеть историю заказов</p><button class="connect-btn" onclick="connectWallet()">Подключить Phantom</button></div>';
+                } else {
+                    document.getElementById('content').innerHTML = '<div class="connect-msg"><p>Установите расширение Phantom, чтобы войти в личный кабинет</p></div>';
+                }
+            }
+        })();
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const btn = document.getElementById('themeToggle');
+            if (html.dataset.theme === 'light') {
+                delete html.dataset.theme;
+                const moon = btn.querySelector('.theme-moon');
+                const sun = btn.querySelector('.theme-sun');
+                if (moon) moon.style.display = '';
+                if (sun) sun.style.display = 'none';
+                localStorage.setItem('theme', 'dark');
+            } else {
+                html.dataset.theme = 'light';
+                const moon = btn.querySelector('.theme-moon');
+                const sun = btn.querySelector('.theme-sun');
+                if (moon) moon.style.display = 'none';
+                if (sun) sun.style.display = '';
+                localStorage.setItem('theme', 'light');
+            }
+        }
+        (function initTheme() {
+            const saved = localStorage.getItem('theme');
+            const btn = document.getElementById('themeToggle');
+            if (saved === 'light') {
+                document.documentElement.dataset.theme = 'light';
+                if (btn) {
+                    const moon = btn.querySelector('.theme-moon');
+                    const sun = btn.querySelector('.theme-sun');
+                    if (moon) moon.style.display = 'none';
+                    if (sun) sun.style.display = '';
+                }
+            }
+        })();
+    </script>
+</body>
+</html>

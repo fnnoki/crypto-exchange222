@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Статус заказа</title>
+    <style>
+        :root{--bg-body:#0a0a0a;--bg-card:#1a1a1a;--bg-card-alt:#222;--bg-input:#222;--border:#333;--border2:#333;--text-primary:#fff;--text-secondary:#ccc;--text-muted:#aaa;--text-dim:#888;--text-dimmer:#666}[data-theme="light"]{--bg-body:#f0f2f5;--bg-card:#fff;--bg-card-alt:#f5f7fa;--bg-input:#fff;--border:#d0d0d0;--border2:#d0d0d0;--text-primary:#111;--text-secondary:#333;--text-muted:#555;--text-dim:#777;--text-dimmer:#999}
+        .theme-toggle{position:fixed;top:16px;left:20px;z-index:999;padding:6px 12px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border);cursor:pointer;font-size:13px;transition:.3s;color:var(--text-primary);font-family:inherit;white-space:nowrap}.theme-toggle:hover{background:var(--bg-card-alt)}
+        .home-btn{position:fixed;top:14px;left:20px;z-index:999;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .3s;text-decoration:none}.home-btn:hover{transform:scale(1.1)}.home-btn img{width:32px;height:32px;object-fit:contain;filter:invert(1)}[data-theme="light"] .home-btn img{filter:none}
+        [data-theme="light"] .result.found{background:#ecfdf5;border-color:#86efac}[data-theme="light"] .result.found h3{color:#16a34a}[data-theme="light"] .result.not-found{background:#fef2f2;border-color:#fca5a5}[data-theme="light"] .result.not-found h3{color:#dc2626}[data-theme="light"] .info-label{color:#666}[data-theme="light"] .info-value{color:#111}[data-theme="light"] .info-row{border-color:#e0e0e0}[data-theme="light"] .back-link{color:#4f46e5}
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-body);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: var(--text-primary);
+        }
+        .container {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 450px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            border: 1px solid var(--border);
+        }
+        h1 { text-align: center; margin-bottom: 25px; font-size: 24px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; color: var(--text-muted); font-weight: 500; }
+        input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid var(--border2);
+            border-radius: 10px;
+            font-size: 16px;
+            background: var(--bg-input);
+            color: var(--text-primary);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: border-color 0.3s;
+        }
+        input:focus { outline: none; border-color: #4f46e5; }
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #333;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
+        [data-theme="light"] button { background: #e5e7eb; color: #000; }
+        .result {
+            margin-top: 25px;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+        .result.show { display: block; }
+        .result.found { background: #0d2818; border: 2px solid #22c55e; }
+        .result.not-found { background: #2d1515; border: 2px solid #ef4444; }
+        .result h3 { margin-bottom: 15px; }
+        .result.found h3 { color: #22c55e; }
+        .result.not-found h3 { color: #ef4444; }
+        [data-theme="light"] .loading { color: #666; }
+        .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); }
+        .info-row:last-child { border-bottom: none; }
+        .info-label { color: var(--text-dim); font-size: 14px; }
+        .info-value { color: var(--text-primary); font-weight: 600; font-size: 14px; }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-pending { background: #fef3c7; color: #d97706; }
+        .status-paid { background: #dcfce7; color: #16a34a; }
+        .status-canceled { background: #fee2e2; color: #dc2626; }
+        .back-link { display: block; text-align: center; margin-top: 20px; color: #4f46e5; text-decoration: none; font-size: 14px; }
+        .loading { text-align: center; color: var(--text-dim); margin-top: 20px; display: none; }
+        .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid #333; border-top-color: #4f46e5; border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 8px; vertical-align: middle; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 480px) {
+            .container { padding: 25px; }
+            .info-row { flex-direction: column; gap: 4px; }
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="home-btn" title="На главную"><img src="/static/logo.webp" alt="Home"></a>
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Сменить тему">
+            <svg class="theme-moon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            <svg class="theme-sun" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+    <div class="container">
+        <h1>Проверить статус заказа</h1>
+        <form id="trackForm">
+            <div class="form-group">
+                <label>ID заказа</label>
+                <input type="text" id="orderIdInput" required placeholder="XXXX-XXXX" maxlength="10">
+            </div>
+            <button type="submit" id="trackBtn">Проверить</button>
+        </form>
+        <div class="loading" id="loading"><span class="spinner"></span>Поиск заказа...</div>
+        <div class="result" id="result">
+            <h3 id="resultTitle"></h3>
+            <div id="resultContent"></div>
+        </div>
+        <a href="/" class="back-link">На главную</a>
+    </div>
+    <script>
+        document.getElementById('trackForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const orderId = document.getElementById('orderIdInput').value.trim().toUpperCase();
+            const result = document.getElementById('result');
+            const loading = document.getElementById('loading');
+            const btn = document.getElementById('trackBtn');
+
+            result.classList.remove('show', 'found', 'not-found');
+            loading.style.display = 'block';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`/api/orders/${orderId}/status`);
+                const data = await response.json();
+                loading.style.display = 'none';
+
+                if (response.ok) {
+                    const statusMap = { pending: 'Ожидает оплаты', paid: 'Оплачено', canceled: 'Отменён' };
+                    const asset = data.asset_type || 'USDT';
+                    const typeText = data.order_type === 'buy' ? ('Обмен ' + asset) : 'Продажа USDT';
+                    const statusClass = 'status-' + data.status;
+
+                    document.getElementById('resultTitle').textContent = 'Заказ найден';
+                    document.getElementById('resultContent').innerHTML = `
+                        <div class="info-row"><span class="info-label">ID заказа</span><span class="info-value">${data.order_id}</span></div>
+                        <div class="info-row"><span class="info-label">Тип</span><span class="info-value">${typeText}</span></div>
+                        <div class="info-row"><span class="info-label">Сумма</span><span class="info-value">${data.amount_usdt} ${asset}</span></div>
+                        ${data.amount_rub ? `<div class="info-row"><span class="info-label">К получению</span><span class="info-value">${data.amount_rub} ${data.currency}</span></div>` : ''}
+                        <div class="info-row"><span class="info-label">Валюта</span><span class="info-value">${data.currency}</span></div>
+                        <div class="info-row"><span class="info-label">Дата</span><span class="info-value">${new Date(data.created_at).toLocaleString('ru-RU')}</span></div>
+                        <div class="info-row"><span class="info-label">Статус</span><span class="info-value"><span class="status-badge ${statusClass}">${statusMap[data.status] || data.status}</span></span></div>
+                    `;
+                    result.classList.add('show', 'found');
+                } else {
+                    document.getElementById('resultTitle').textContent = 'Заказ не найден';
+                    document.getElementById('resultContent').innerHTML = '<p style="color:#aaa;text-align:center;">Проверьте правильность ID заказа</p>';
+                    result.classList.add('show', 'not-found');
+                }
+            } catch (e) {
+                loading.style.display = 'none';
+                document.getElementById('resultTitle').textContent = 'Ошибка';
+                document.getElementById('resultContent').innerHTML = '<p style="color:#aaa;text-align:center;">Не удалось проверить статус. Попробуйте позже.</p>';
+                result.classList.add('show', 'not-found');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+        function toggleTheme() {
+            const html = document.documentElement;
+            const btn = document.getElementById('themeToggle');
+            if (html.dataset.theme === 'light') {
+                delete html.dataset.theme;
+                const moon = btn.querySelector('.theme-moon');
+                const sun = btn.querySelector('.theme-sun');
+                if (moon) moon.style.display = '';
+                if (sun) sun.style.display = 'none';
+                localStorage.setItem('theme', 'dark');
+            } else {
+                html.dataset.theme = 'light';
+                const moon = btn.querySelector('.theme-moon');
+                const sun = btn.querySelector('.theme-sun');
+                if (moon) moon.style.display = 'none';
+                if (sun) sun.style.display = '';
+                localStorage.setItem('theme', 'light');
+            }
+        }
+        (function initTheme() {
+            const saved = localStorage.getItem('theme');
+            const btn = document.getElementById('themeToggle');
+            if (saved === 'light') {
+                document.documentElement.dataset.theme = 'light';
+                if (btn) {
+                    const moon = btn.querySelector('.theme-moon');
+                    const sun = btn.querySelector('.theme-sun');
+                    if (moon) moon.style.display = 'none';
+                    if (sun) sun.style.display = '';
+                }
+            }
+        })();
+    </script>
+</body>
+</html>

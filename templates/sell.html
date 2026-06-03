@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Купить USDT</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        :root{--bg-body:#0a0a0a;--bg-card:#1a1a1a;--bg-card-alt:#222;--bg-input:#222;--bg-calc:#111;--border:#333;--border2:#333;--text-primary:#fff;--text-secondary:#ccc;--text-muted:#aaa;--text-dim:#888;--text-dimmer:#666}[data-theme="light"]{--bg-body:#f0f2f5;--bg-card:#fff;--bg-card-alt:#f5f7fa;--bg-input:#fff;--bg-calc:#f8f9fa;--border:#d0d0d0;--border2:#d0d0d0;--text-primary:#111;--text-secondary:#333;--text-muted:#555;--text-dim:#777;--text-dimmer:#999}
+        .theme-toggle{position:fixed;top:16px;left:20px;z-index:999;padding:6px 12px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border);cursor:pointer;font-size:13px;transition:.3s;color:var(--text-primary);font-family:inherit;white-space:nowrap}.theme-toggle:hover{background:var(--bg-card-alt)}
+        .home-btn{position:fixed;top:14px;left:20px;z-index:999;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .3s;text-decoration:none}.home-btn:hover{transform:scale(1.1)}.home-btn img{width:32px;height:32px;object-fit:contain;filter:invert(1)}[data-theme="light"] .home-btn img{filter:none}
+        [data-theme="light"] .result p{color:#444}[data-theme="light"] .result .label{color:#666}[data-theme="light"] .result .value{color:#111}[data-theme="light"] .rate-display .label{color:#666}[data-theme="light"] .rate-display .label span{color:#d97706}[data-theme="light"] .order-timer{background:#fef2f2;border-color:#fca5a5}[data-theme="light"] .order-timer .timer-label{color:#dc2626}[data-theme="light"] .order-timer .timer-value{color:#dc2626}[data-theme="light"] .calculator{background:#f8f9fa;border-color:#d0d0d0}[data-theme="light"] .calc-row .calc-label{color:#666}[data-theme="light"] .calc-row .calc-value{color:#111}[data-theme="light"] .calc-divider{border-color:#d0d0d0}[data-theme="light"] .rate-display{background:linear-gradient(135deg,#eef2ff,#e0e7ff);border-color:#c7d2fe}[data-theme="light"] .rate-display .value{color:#16a34a}[data-theme="light"] .nav-links a{color:#4f46e5}[data-theme="light"] .footer a{color:#999}[data-theme="light"] .footer{border-color:#d0d0d0}[data-theme="light"] .modal-content{background:#fff;border-color:#d97706}[data-theme="light"] .modal-content h3{color:#d97706}[data-theme="light"] .modal-content p{color:#555}[data-theme="light"] .modal-btn.cancel{background:#e5e7eb;color:#000}[data-theme="light"] .copy-btn{background:#e5e7eb;color:#000}[data-theme="light"] input, [data-theme="light"] select{background:#fff;border-color:#d0d0d0;color:#111}
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-body);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 450px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            border: 1px solid var(--border);
+        }
+        h1 {
+            color: var(--text-primary);
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        input, select {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid var(--border2);
+            border-radius: 10px;
+            font-size: 16px;
+            background: var(--bg-input);
+            color: var(--text-primary);
+            transition: border-color 0.3s;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #4f46e5;
+        }
+        button {
+            width: 100%;
+            padding: 16px;
+            background: #333;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        [data-theme="light"] button { background: #e5e7eb; color: #000; }
+        .result {
+            margin-top: 25px;
+            padding: 20px;
+            background: #0d2818;
+            border: 2px solid #22c55e;
+            border-radius: 10px;
+            display: none;
+        }
+        .result.show { display: block; }
+        .result h3 { color: #22c55e; margin-bottom: 15px; }
+        .result p { margin-bottom: 10px; word-break: break-all; color: var(--text-secondary); }
+        .result .label { color: var(--text-dim); font-weight: 500; }
+        .result .value { color: var(--text-primary); font-weight: 600; }
+
+        .result-grid {
+            display: flex; gap: 20px; align-items: flex-start;
+        }
+        .result-info { flex: 1; min-width: 0; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center; align-items: center;
+            z-index: 1000;
+        }
+        .modal.show { display: flex; }
+        .modal-content {
+            background: var(--bg-card); padding: 30px; border-radius: 15px;
+            max-width: 400px; text-align: center; border: 2px solid #f59e0b;
+        }
+        .modal-content h3 { color: #f59e0b; margin-bottom: 15px; }
+        .modal-content p { color: var(--text-secondary); margin-bottom: 20px; line-height: 1.5; }
+        .modal-btn { padding: 12px 30px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
+        .modal-btn.confirm { background: #333; color: #fff; font-weight: 600; }
+        [data-theme="light"] .modal-btn.confirm { background: #e5e7eb; color: #000; }
+        .modal-btn.cancel { background: var(--bg-card-alt); color: var(--text-primary); }
+        .modal-buttons { display: flex; justify-content: center; gap: 15px; }
+
+        .order-timer {
+            background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
+            padding: 15px; border-radius: 10px; margin-top: 15px;
+            text-align: center; border: 1px solid #ef4444;
+        }
+        .order-timer .timer-label { color: #fca5a5; font-size: 12px; margin-bottom: 5px; }
+        .order-timer .timer-value { color: #fff; font-size: 28px; font-weight: bold; font-family: monospace; }
+        .order-timer.urgent { animation: pulse 1s infinite; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
+
+        .copy-btn {
+            background: #333; color: #fff; margin-top: 10px; padding: 10px; font-size: 14px;
+        }
+        .error { background: #2d1515; border-color: #ef4444; }
+        .error h3 { color: #ef4444; }
+        .nav-links { text-align: center; margin-top: 20px; }
+        .nav-links a { color: #4f46e5; text-decoration: none; font-size: 14px; }
+        .rate-display {
+            background: linear-gradient(135deg, #1e1e3f 0%, #2d2d5a 100%);
+            padding: 15px; border-radius: 12px; margin-bottom: 20px;
+            text-align: center; border: 1px solid #3d3d6b;
+        }
+        .rate-display .label { color: #888; font-size: 12px; margin-bottom: 5px; }
+        .rate-display .label span { color: #f59e0b; font-size: 11px; }
+        .rate-display .value { color: #22c55e; font-size: 24px; font-weight: bold; }
+        .rate-progress { width: 100%; height: 4px; background: var(--border); border-radius: 2px; margin-top: 10px; overflow: hidden; }
+        .rate-progress-bar { height: 100%; background: linear-gradient(90deg, #4f46e5, #7c3aed); border-radius: 2px; width: 100%; transition: width 1s linear; }
+        .calculator { background: var(--bg-calc); border-radius: 10px; padding: 15px; margin-bottom: 20px; border: 1px solid var(--border); }
+        .calc-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; }
+        .calc-row .calc-label { color: var(--text-dim); font-size: 13px; }
+        .calc-row .calc-value { color: var(--text-primary); font-weight: 600; font-size: 14px; }
+        .calc-row .calc-value.highlight { color: #22c55e; font-size: 18px; }
+        .calc-divider { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
+        .footer { margin-top: 25px; padding-top: 20px; border-top: 1px solid var(--border); display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
+        .footer a { color: var(--text-dimmer); text-decoration: none; font-size: 13px; transition: color 0.2s; }
+        .footer a:hover { color: #4f46e5; }
+
+        /* Coin Game */
+        .game-wrap {
+            display: none; flex-direction: column; align-items: center;
+        }
+        .game-wrap.show { display: flex; }
+        .game-wrap canvas {
+            border: 1px solid #22c55e; border-radius: 8px; background: #0a0a0a;
+        }
+        [data-theme="light"] .game-wrap canvas { background: #f8f9fa; }
+        .game-scorebar {
+            display: flex; justify-content: space-between; width: 100%;
+            color: #22c55e; font-size: 13px; font-weight: 600; margin-bottom: 6px;
+        }
+        .game-scorebar .s { color: var(--text-primary); }
+
+        @media (max-width: 700px) {
+            .result-grid { flex-direction: column; }
+            .game-wrap canvas { max-width: 100%; }
+        }
+        @media (max-width: 480px) {
+            .container { padding: 25px; }
+            h1 { font-size: 20px; }
+            input, select { padding: 12px; font-size: 15px; }
+            .rate-display .value { font-size: 20px; }
+            .order-timer .timer-value { font-size: 24px; }
+            .footer { gap: 12px; }
+            .footer a { font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="home-btn" title="На главную"><img src="/static/logo.webp" alt="Home"></a>
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Сменить тему">
+            <svg class="theme-moon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            <svg class="theme-sun" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+    <div class="container">
+        <div class="rate-display">
+            <div class="label">Курс продажи <span>(+3% комиссия)</span></div>
+            <div class="value" id="usdtRate">Загрузка...</div>
+            <div class="rate-progress">
+                <div class="rate-progress-bar" id="rateProgressBar"></div>
+            </div>
+        </div>
+        <h1>Получить USDT</h1>
+        <form id="paymentForm" autocomplete="off">
+            <div class="form-group">
+                <label>Сумма USDT</label>
+                <input type="number" step="0.01" min="1" name="amount_usdt" id="amountUsdt" required placeholder="Введите сумму">
+            </div>
+            <div class="calculator" id="calculator">
+                <div class="calc-row">
+                    <span class="calc-label">Получаете</span>
+                    <span class="calc-value highlight" id="calcReceive">0 USDT</span>
+                </div>
+                <hr class="calc-divider">
+                <div class="calc-row">
+                    <span class="calc-label">Отправляете</span>
+                    <span class="calc-value" id="calcSend">0</span>
+                </div>
+                <div class="calc-row" style="margin-top:5px;">
+                    <span class="calc-label">Комиссия</span>
+                    <span class="calc-value" style="color:#f59e0b;font-size:13px;" id="calcCommission">0 (0%)</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Валюта</label>
+                <select name="currency" id="currencySelect" required>
+                    <option value="">Выберите валюту</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Банк</label>
+                <select name="bank" id="bankSelect" required disabled>
+                    <option value="">Сначала выберите валюту</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label id="accountLabel">Номер телефона или карты</label>
+                <input type="text" inputmode="numeric" name="account_details" id="accountInput" required placeholder="Только цифры" oninput="this.value=this.value.replace(/[^0-9]/g,'')" autocomplete="off">
+            </div>
+            <button type="submit" id="submitBtn">Купить USDT</button>
+        </form>
+
+        <div id="result" class="result">
+            <h3>Отправьте валюту для получения USDT</h3>
+            <div class="result-grid">
+                <div class="result-info">
+                    <p><span class="label">ID заказа:</span> <span class="value" id="resOrderId"></span></p>
+                    <p><span class="label">Получаете:</span> <span class="value" id="resAmount"></span> USDT</p>
+                    <p><span class="label">Отправляете:</span> <span class="value" id="resAmountRub"></span></p>
+                    <p><span class="label">Комиссия:</span> <span class="value" id="resCommission" style="color:#f59e0b;"></span></p>
+                    <p><span class="label">Адрес для оплаты (TRC20):</span></p>
+                    <p class="value" id="resAddress" style="font-size:13px;"></p>
+                    <button class="copy-btn" onclick="copyAddress()">Копировать адрес</button>
+                    <div style="margin-top:15px;text-align:center;">
+                        <p class="label" style="margin-bottom:10px;">QR код для оплаты:</p>
+                        <div id="qrCode" style="display:inline-block;"></div>
+                    </div>
+                    <p style="margin-top:15px;"><span class="label">Статус:</span> <span class="value" id="resStatus"></span></p>
+                    <p style="margin-top:5px;"><a href="/track" style="color:#4f46e5;font-size:13px;">Проверить статус →</a></p>
+                    <div class="order-timer" id="orderTimer" style="display:none;">
+                        <div class="timer-label">Время на оплату заказа</div>
+                        <div class="timer-value" id="timerValue">15:00</div>
+                    </div>
+                </div>
+                <div class="game-wrap" id="gameWrap">
+                    <div class="game-scorebar">
+                        <span>СЧЁТ: <span class="s" id="gameScore">0</span></span>
+                        <span>МОНЕТ: <span class="s" id="gameCoins">0</span></span>
+                    </div>
+                    <canvas id="gameCanvas" width="280" height="360"></canvas>
+                    <p style="color:#666;font-size:11px;margin-top:6px;">← → или мышь — двигать корзину</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="nav-links">
+            <a href="/">Получить валюту</a>
+            <span style="margin: 0 10px; color: #666;">|</span>
+            <a href="/track">Статус заказа</a>
+        </div>
+        <div class="footer">
+            <a href="/about">О нас</a>
+            <a href="/rules">Правила</a>
+            <a href="/support">Поддержка</a>
+        </div>
+    </div>
+
+    <div class="modal" id="warningModal">
+        <div class="modal-content">
+            <h3>⚠️ Важное предупреждение</h3>
+            <p>Вы отправляете валюту и получаете USDT. У вас будет <strong>15 минут</strong> на оплату.</p>
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" onclick="closeModal()">Отмена</button>
+                <button class="modal-btn confirm" onclick="confirmOrder()">Отправить валюту</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const COMMISSION = 3;
+        let currenciesConfig = {};
+        let currentSellRate = null;
+        let currentCurrency = 'RUB';
+
+        const BANK_FIELD_TYPES = {
+            'RUB': {
+                'Сбербанк': { label: 'Номер телефона', placeholder: '79991234567', maxLen: 11 },
+                'Тинькофф': { label: 'Номер телефона или карты', placeholder: 'Только цифры', maxLen: 16 },
+                'Альфа-Банк': { label: 'Номер карты', placeholder: '16 цифр карты', maxLen: 16 },
+                'ВТБ': { label: 'Номер телефона или карты', placeholder: 'Только цифры', maxLen: 16 },
+                'Райффайзен': { label: 'Номер карты', placeholder: '16 цифр карты', maxLen: 16 }
+            },
+            'USD': { '*': { label: 'Номер счёта', placeholder: 'Только цифры', maxLen: 20 } },
+            'EUR': { '*': { label: 'IBAN (только цифры)', placeholder: 'Цифры счёта', maxLen: 22 } },
+            'GBP': { '*': { label: 'Номер счёта', placeholder: 'Только цифры', maxLen: 20 } },
+            'KZT': {
+                'Kaspi Bank': { label: 'Номер телефона', placeholder: '77001234567', maxLen: 11 },
+                '*': { label: 'Номер счёта', placeholder: 'Только цифры', maxLen: 20 }
+            }
+        };
+
+        function getFieldConfig(currency, bank) {
+            const cc = BANK_FIELD_TYPES[currency];
+            if (!cc) return { label: 'Реквизиты', placeholder: 'Только цифры', maxLen: 20 };
+            if (cc[bank]) return cc[bank];
+            if (cc['*']) return cc['*'];
+            return { label: 'Реквизиты', placeholder: 'Только цифры', maxLen: 20 };
+        }
+
+        async function fetchCurrencies() {
+            try {
+                const response = await fetch('/api/currencies');
+                const data = await response.json();
+                currenciesConfig = data.banks;
+                const currencySelect = document.getElementById('currencySelect');
+                data.currencies.forEach(currency => {
+                    const option = document.createElement('option');
+                    option.value = currency;
+                    option.textContent = currency;
+                    currencySelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error fetching currencies:', error);
+            }
+        }
+
+        document.getElementById('currencySelect').addEventListener('change', function() {
+            const bankSelect = document.getElementById('bankSelect');
+            const currency = this.value;
+            currentCurrency = currency;
+            if (currency && currenciesConfig[currency]) {
+                bankSelect.disabled = false;
+                bankSelect.innerHTML = '<option value="">Выберите банк</option>';
+                currenciesConfig[currency].forEach(bank => {
+                    const option = document.createElement('option');
+                    option.value = bank;
+                    option.textContent = bank;
+                    bankSelect.appendChild(option);
+                });
+                updateRate(currency);
+                updateAccountField(currency, '');
+            } else {
+                bankSelect.disabled = true;
+                bankSelect.innerHTML = '<option value="">Сначала выберите валюту</option>';
+            }
+        });
+
+        document.getElementById('bankSelect').addEventListener('change', function() {
+            const currency = document.getElementById('currencySelect').value;
+            updateAccountField(currency, this.value);
+        });
+
+        function updateAccountField(currency, bank) {
+            const cfg = getFieldConfig(currency, bank);
+            document.getElementById('accountLabel').textContent = cfg.label;
+            const input = document.getElementById('accountInput');
+            input.placeholder = cfg.placeholder;
+            input.maxLength = cfg.maxLen;
+        }
+
+        async function updateRate(currency) {
+            try {
+                const response = await fetch(`/api/rate?currency=${currency}`);
+                const data = await response.json();
+                if (data.sell_rate) {
+                    currentSellRate = parseFloat(data.sell_rate);
+                    document.getElementById('usdtRate').textContent = currentSellRate.toFixed(2) + ' ' + getCurrencySymbol(currency);
+                    updateCalculator();
+                } else if (data.rate) {
+                    currentSellRate = parseFloat(data.rate) * (1 + COMMISSION / 100);
+                    document.getElementById('usdtRate').textContent = currentSellRate.toFixed(2) + ' ' + getCurrencySymbol(currency);
+                    updateCalculator();
+                } else {
+                    document.getElementById('usdtRate').textContent = 'Курс не найден';
+                }
+            } catch (error) {
+                document.getElementById('usdtRate').textContent = 'Ошибка загрузки';
+            }
+        }
+
+        function getCurrencySymbol(currency) {
+            const symbols = {'RUB': '₽', 'USD': '$', 'EUR': '€', 'GBP': '£', 'KZT': '₸'};
+            return symbols[currency] || '';
+        }
+
+        function updateCalculator() {
+            const usdtInput = document.getElementById('amountUsdt');
+            const amount = parseFloat(usdtInput.value) || 0;
+            if (amount > 0 && currentSellRate) {
+                const send = (amount * currentSellRate).toFixed(2);
+                const rawRate = currentSellRate / (1 + COMMISSION / 100);
+                const commissionAmount = (amount * rawRate * COMMISSION / 100).toFixed(2);
+                document.getElementById('calcReceive').textContent = amount.toFixed(2) + ' USDT';
+                document.getElementById('calcSend').textContent = send + ' ' + getCurrencySymbol(currentCurrency);
+                document.getElementById('calcCommission').textContent = commissionAmount + ' ' + getCurrencySymbol(currentCurrency) + ' (' + COMMISSION + '%)';
+            } else {
+                document.getElementById('calcReceive').textContent = '0 USDT';
+                document.getElementById('calcSend').textContent = '0 ' + getCurrencySymbol(currentCurrency);
+                document.getElementById('calcCommission').textContent = '0 (0%)';
+            }
+        }
+
+        document.getElementById('amountUsdt').addEventListener('input', updateCalculator);
+
+        document.getElementById('paymentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            document.getElementById('warningModal').classList.add('show');
+        });
+
+        function closeModal() {
+            document.getElementById('warningModal').classList.remove('show');
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = false;
+            btn.textContent = 'Купить USDT';
+        }
+
+        async function confirmOrder() {
+            document.getElementById('warningModal').classList.remove('show');
+            const btn = document.getElementById('submitBtn');
+            const form = document.getElementById('paymentForm');
+            const formData = new FormData(form);
+            btn.disabled = true;
+            btn.textContent = 'Создание заказа...';
+            try {
+                const payload = {
+                    amount_usdt: parseFloat(formData.get('amount_usdt')),
+                    currency: formData.get('currency'),
+                    bank: formData.get('bank'),
+                    phone: formData.get('account_details'),
+                    order_type: 'sell'
+                };
+                const response = await fetch('/api/orders', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const text = await response.text();
+                if (!response.ok) {
+                    alert('Ошибка: ' + text);
+                    btn.disabled = false;
+                    btn.textContent = 'Купить USDT';
+                    return;
+                }
+                const data = JSON.parse(text);
+                if (response.ok) {
+                    document.getElementById('resOrderId').textContent = data.order_id;
+                    document.getElementById('resAmount').textContent = data.amount_usdt;
+                    document.getElementById('resAmountRub').textContent = (data.amount_rub || '—') + ' ' + getCurrencySymbol(currentCurrency);
+                    document.getElementById('resCommission').textContent = (data.commission_amount || 0).toFixed(2) + ' ' + getCurrencySymbol(currentCurrency) + ' (' + (data.commission_percent || COMMISSION) + '%)';
+                    document.getElementById('resAddress').textContent = data.deposit_address;
+                    document.getElementById('resStatus').textContent = data.status;
+                    document.getElementById('result').classList.add('show');
+                    document.getElementById('result').classList.remove('error');
+                    form.style.display = 'none';
+                    document.getElementById('qrCode').innerHTML = '';
+                    new QRCode(document.getElementById('qrCode'), { text: data.deposit_address, width: 150, height: 150 });
+                    startOrderTimer();
+                    startGame();
+                } else {
+                    alert('Ошибка: ' + (data.detail || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('Ошибка: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Купить USDT';
+            }
+        }
+
+        let orderTimerInterval = null;
+        let orderTimeRemaining = 900;
+
+        function startOrderTimer() {
+            const timerElement = document.getElementById('orderTimer');
+            const timerValue = document.getElementById('timerValue');
+            timerElement.style.display = 'block';
+            orderTimeRemaining = 900;
+            orderTimerInterval = setInterval(() => {
+                orderTimeRemaining--;
+                const m = Math.floor(orderTimeRemaining / 60);
+                const s = orderTimeRemaining % 60;
+                timerValue.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+                if (orderTimeRemaining <= 60) timerElement.classList.add('urgent');
+                if (orderTimeRemaining <= 0) {
+                    clearInterval(orderTimerInterval);
+                    timerElement.classList.remove('urgent');
+                    timerValue.textContent = '00:00';
+                    stopGame();
+                    alert('Время истекло! Заказ отменён.');
+                    location.reload();
+                }
+            }, 1000);
+        }
+
+        function copyAddress() {
+            const address = document.getElementById('resAddress').textContent;
+            navigator.clipboard.writeText(address).then(() => {});
+        }
+
+        // === Coin Catcher Game ===
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('gameScore');
+        const coinsEl = document.getElementById('gameCoins');
+        const gameWrap = document.getElementById('gameWrap');
+
+        const COIN_TYPES = [
+            { symbol: 'BTC', color: '#f7931a', value: 50, size: 18 },
+            { symbol: 'ETH', color: '#627eea', value: 30, size: 17 },
+            { symbol: 'SOL', color: '#9945ff', value: 20, size: 16 },
+            { symbol: 'TRX', color: '#ef0027', value: 10, size: 15 },
+            { symbol: 'DOGE', color: '#c2a633', value: 5, size: 15 },
+        ];
+
+        let gameRunning = false;
+        let gameAnimId = null;
+        let gameScoreVal = 0;
+        let gameCoinsVal = 0;
+        let catcher = { x: 140, w: 64, h: 12 };
+        let coins = [];
+        let frame = 0;
+        let keys = {};
+
+        function drawCoinLogo(type, x, y, size) {
+            ctx.save();
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold ' + Math.round(size * 0.58) + 'px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.shadowColor = '#000'; ctx.shadowBlur = 3;
+            ctx.fillText(type.symbol, x, y + 0.5);
+            ctx.restore();
+        }
+
+        function startGame() {
+            gameWrap.classList.add('show');
+            catcher = { x: 140, w: 64, h: 12 };
+            coins = [];
+            frame = 0;
+            gameScoreVal = 0;
+            gameCoinsVal = 0;
+            gameRunning = true;
+            scoreEl.textContent = '0';
+            coinsEl.textContent = '0';
+            gameLoop();
+        }
+
+        function stopGame() {
+            gameRunning = false;
+            if (gameAnimId) { cancelAnimationFrame(gameAnimId); gameAnimId = null; }
+        }
+
+        function spawnCoin() {
+            const type = COIN_TYPES[Math.floor(Math.random() * COIN_TYPES.length)];
+            const x = 10 + Math.random() * (canvas.width - 30);
+            const speed = 1 + Math.random() * 2;
+            coins.push({ x, y: -type.size, type, speed, size: type.size });
+        }
+
+        function gameLoop() {
+            if (!gameRunning) return;
+            frame++;
+            if (frame % 55 === 0) spawnCoin();
+
+            if (keys['ArrowLeft'] || keys['KeyA']) catcher.x = Math.max(0, catcher.x - 4);
+            if (keys['ArrowRight'] || keys['KeyD']) catcher.x = Math.min(canvas.width - catcher.w, catcher.x + 4);
+
+            for (let i = coins.length - 1; i >= 0; i--) {
+                const c = coins[i];
+                c.y += c.speed;
+                if (c.y + c.size >= canvas.height - catcher.h - 4 && c.y - c.size <= canvas.height - 4 &&
+                    c.x + c.size >= catcher.x && c.x - c.size <= catcher.x + catcher.w) {
+                    gameScoreVal += c.type.value;
+                    gameCoinsVal++;
+                    scoreEl.textContent = gameScoreVal;
+                    coinsEl.textContent = gameCoinsVal;
+                    coins.splice(i, 1);
+                    continue;
+                }
+                if (c.y - c.size > canvas.height) coins.splice(i, 1);
+            }
+
+            drawGame();
+            gameAnimId = requestAnimationFrame(gameLoop);
+        }
+
+        function drawGame() {
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = '#1a2a1a';
+            ctx.lineWidth = 0.5;
+            for (let x = 0; x < canvas.width; x += 20) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke(); }
+            for (let y = 0; y < canvas.height; y += 20) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke(); }
+
+            for (const c of coins) {
+                const g = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, c.size + 8);
+                g.addColorStop(0, c.type.color + '66');
+                g.addColorStop(1, 'transparent');
+                ctx.fillStyle = g;
+                ctx.beginPath(); ctx.arc(c.x, c.y, c.size + 8, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = c.type.color;
+                ctx.beginPath(); ctx.arc(c.x, c.y, c.size, 0, Math.PI * 2); ctx.fill();
+                ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+                drawCoinLogo(c.type, c.x, c.y, c.size);
+            }
+
+            const cy = canvas.height - catcher.h - 4;
+            const g2 = ctx.createLinearGradient(catcher.x, cy, catcher.x + catcher.w, cy);
+            g2.addColorStop(0, '#4f46e5'); g2.addColorStop(1, '#0099cc');
+            ctx.fillStyle = g2;
+            ctx.beginPath(); ctx.roundRect(catcher.x, cy, catcher.w, catcher.h, 4); ctx.fill();
+
+            ctx.fillStyle = '#22c55e';
+            ctx.font = 'bold 12px monospace';
+            ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+            ctx.fillText('$ ' + gameScoreVal, 6, 6);
+        }
+
+        document.addEventListener('keydown', e => { keys[e.code] = true; if (['ArrowLeft','ArrowRight','Space','KeyA','KeyD'].includes(e.code)) e.preventDefault(); });
+        document.addEventListener('keyup', e => { keys[e.code] = false; });
+        canvas.addEventListener('mousemove', e => {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+            catcher.x = Math.max(0, Math.min(canvas.width - catcher.w, x - catcher.w / 2));
+        });
+
+        // --- Rate refresh ---
+        let rateCountdown = 60;
+
+        async function fetchRate() {
+            try {
+                const currency = document.getElementById('currencySelect').value || 'RUB';
+                const response = await fetch(`/api/rate?currency=${currency}`);
+                const data = await response.json();
+                if (data.sell_rate) {
+                    currentSellRate = parseFloat(data.sell_rate);
+                    document.getElementById('usdtRate').textContent = currentSellRate.toFixed(2) + ' ' + getCurrencySymbol(currency);
+                    updateCalculator();
+                    rateCountdown = 60;
+                } else if (data.rate) {
+                    currentSellRate = parseFloat(data.rate) * (1 + COMMISSION / 100);
+                    document.getElementById('usdtRate').textContent = currentSellRate.toFixed(2) + ' ' + getCurrencySymbol(currency);
+                    updateCalculator();
+                    rateCountdown = 60;
+                } else {
+                    document.getElementById('usdtRate').textContent = 'Курс не найден';
+                }
+            } catch (error) {
+                document.getElementById('usdtRate').textContent = 'Ошибка загрузки';
+            }
+        }
+
+        function updateProgressBar() {
+            rateCountdown--;
+            const percentage = (rateCountdown / 60) * 100;
+            document.getElementById('rateProgressBar').style.width = percentage + '%';
+            if (rateCountdown <= 0) fetchRate();
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const btn = document.getElementById('themeToggle');
+            if (html.dataset.theme === 'light') {
+                delete html.dataset.theme;
+                const moon = btn.querySelector('.theme-moon');
+                const sun = btn.querySelector('.theme-sun');
+                if (moon) moon.style.display = '';
+                if (sun) sun.style.display = 'none';
+                localStorage.setItem('theme', 'dark');
+            } else {
+                html.dataset.theme = 'light';
+                const moon = btn.querySelector('.theme-moon');
+                const sun = btn.querySelector('.theme-sun');
+                if (moon) moon.style.display = 'none';
+                if (sun) sun.style.display = '';
+                localStorage.setItem('theme', 'light');
+            }
+        }
+        (function initTheme() {
+            const saved = localStorage.getItem('theme');
+            const btn = document.getElementById('themeToggle');
+            if (saved === 'light') {
+                document.documentElement.dataset.theme = 'light';
+                if (btn) {
+                    const moon = btn.querySelector('.theme-moon');
+                    const sun = btn.querySelector('.theme-sun');
+                    if (moon) moon.style.display = 'none';
+                    if (sun) sun.style.display = '';
+                }
+            }
+        })();
+
+        fetchCurrencies().then(() => {
+            document.getElementById('currencySelect').value = 'RUB';
+            document.getElementById('currencySelect').dispatchEvent(new Event('change'));
+        });
+        setInterval(updateProgressBar, 1000);
+    </script>
+</body>
+</html>

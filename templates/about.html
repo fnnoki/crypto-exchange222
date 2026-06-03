@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>О нас</title>
+    <style>
+        :root{--bg-body:#0a0a0a;--bg-card:#1a1a1a;--bg-card-alt:#222;--border:#333;--text-primary:#fff;--text-dim:#888;--text-dimmer:#666}[data-theme="light"]{--bg-body:#f0f2f5;--bg-card:#fff;--bg-card-alt:#f5f7fa;--border:#d0d0d0;--text-primary:#111;--text-dim:#555;--text-dimmer:#999}
+        .theme-toggle{position:fixed;top:16px;left:20px;z-index:999;padding:6px 12px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border);cursor:pointer;font-size:13px;transition:.3s;color:var(--text-primary);font-family:inherit;white-space:nowrap}.theme-toggle:hover{background:var(--bg-card-alt)}
+        .home-btn{position:fixed;top:14px;left:20px;z-index:999;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .3s;text-decoration:none}.home-btn:hover{transform:scale(1.1)}.home-btn img{width:32px;height:32px;object-fit:contain;filter:invert(1)}[data-theme="light"] .home-btn img{filter:none}
+        [data-theme="light"] p{color:#555}[data-theme="light"] ul{color:#555}[data-theme="light"] .feature{background:#f5f7fa;border-color:#d0d0d0}[data-theme="light"] .feature h3{color:#4f46e5}[data-theme="light"] .feature p{color:#666}[data-theme="light"] a{color:#4f46e5}
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-body);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: var(--text-primary);
+        }
+        .container {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+        h1 { margin-bottom: 25px; font-size: 28px; }
+        h2 { color: var(--text-primary); font-size: 18px; margin: 25px 0 10px; text-align: left; }
+        p { color: var(--text-dim); margin-bottom: 15px; line-height: 1.6; text-align: left; }
+        ul { text-align: left; color: var(--text-dim); margin-bottom: 20px; padding-left: 20px; line-height: 1.8; }
+        .features { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; text-align: left; }
+        .feature { background: var(--bg-card-alt, #222); padding: 15px; border-radius: 12px; border: 1px solid var(--border); }
+        .feature h3 { color: #4f46e5; font-size: 14px; margin-bottom: 5px; }
+        .feature p { font-size: 13px; color: #666; margin: 0; }
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            color: #4f46e5;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .feature h3 { color: #4f46e5; font-size: 14px; margin-bottom: 5px; }
+        .feature p { font-size: 13px; color: var(--text-dimmer); margin: 0; }
+        @media (max-width: 480px) {
+            .container { padding: 25px; }
+            h1 { font-size: 22px; }
+            .features { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="home-btn" title="На главную"><img src="/static/logo.webp" alt="Home"></a>
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Сменить тему">
+            <svg class="theme-moon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            <svg class="theme-sun" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+    <div class="container">
+        <h1>О нас</h1>
+        <p>CTS Exchange — это надёжный сервис для быстрого и безопасного обмена криптовалют. Мы помогаем людям легко покупать USDT и другие криптоактивы по выгодному курсу.</p>
+        
+        <h2>Наша миссия</h2>
+        <p>Сделать обмен криптовалют максимально простым, быстрым и доступным для каждого. Мы ценим ваше время и гарантируем безопасность каждой транзакции.</p>
+        
+        <h2>Почему выбирают нас</h2>
+        <div class="features">
+            <div class="feature">
+                <h3>⚡ Быстро</h3>
+                <p>Среднее время обработки заказа — до 5 минут</p>
+            </div>
+            <div class="feature">
+                <h3>🔒 Безопасно</h3>
+                <p>Каждая сделка защищена, данные в надёжном хранилище</p>
+            </div>
+            <div class="feature">
+                <h3>💸 Выгодно</h3>
+                <p>Лучшие курсы без скрытых комиссий</p>
+            </div>
+            <div class="feature">
+                <h3>🌍 Доступно</h3>
+                <p>Поддержка множества валют и платёжных систем</p>
+            </div>
+        </div>
+
+        <h2>Контакты</h2>
+        <p>По всем вопросам обращайтесь в раздел <a href="/support" style="display:inline;margin:0;font-size:inherit;color:#4f46e5;">Поддержка</a>.</p>
+        
+        <a href="/">← На главную</a>
+    </div>
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            const btn = document.getElementById('themeToggle');
+            if (html.dataset.theme === 'light') {
+                delete html.dataset.theme;
+                const moon = btn.querySelector('.theme-moon');
+                const sun = btn.querySelector('.theme-sun');
+                if (moon) moon.style.display = '';
+                if (sun) sun.style.display = 'none';
+                localStorage.setItem('theme', 'dark');
+            } else {
+                html.dataset.theme = 'light';
+                const moon = btn.querySelector('.theme-moon');
+                const sun = btn.querySelector('.theme-sun');
+                if (moon) moon.style.display = 'none';
+                if (sun) sun.style.display = '';
+                localStorage.setItem('theme', 'light');
+            }
+        }
+        (function initTheme() {
+            const saved = localStorage.getItem('theme');
+            const btn = document.getElementById('themeToggle');
+            if (saved === 'light') {
+                document.documentElement.dataset.theme = 'light';
+                if (btn) {
+                    const moon = btn.querySelector('.theme-moon');
+                    const sun = btn.querySelector('.theme-sun');
+                    if (moon) moon.style.display = 'none';
+                    if (sun) sun.style.display = '';
+                }
+            }
+        })();
+    </script>
+</body>
+</html>

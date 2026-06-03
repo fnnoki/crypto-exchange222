@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель</title>
+    <style>
+        :root{--bg-body:#0a0a0a;--bg-card:#1a1a1a;--bg-card-alt:#222;--border:#333;--text-primary:#fff;--text-secondary:#ccc;--text-dim:#888;--text-dimmer:#666}[data-theme="light"]{--bg-body:#f0f2f5;--bg-card:#fff;--bg-card-alt:#f5f7fa;--border:#d0d0d0;--text-primary:#111;--text-secondary:#333;--text-dim:#777;--text-dimmer:#999}
+        .theme-toggle{position:fixed;top:16px;left:20px;z-index:999;padding:6px 12px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border);cursor:pointer;font-size:13px;transition:.3s;color:var(--text-primary);font-family:inherit;white-space:nowrap}.theme-toggle:hover{background:var(--bg-card-alt)}
+        .home-btn{position:fixed;top:14px;left:20px;z-index:999;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .3s;text-decoration:none}.home-btn:hover{transform:scale(1.1)}.home-btn img{width:32px;height:32px;object-fit:contain;filter:invert(1)}[data-theme="light"] .home-btn img{filter:none}
+        [data-theme="light"] .stat-card{background:#fff;border-color:#d0d0d0}
+        [data-theme="light"] .stat-card h3{color:#666}
+        [data-theme="light"] .stat-card .value{color:#111}
+        [data-theme="light"] .stat-card.paid .finance-info{color:#999}
+        [data-theme="light"] .stat-card.paid .finance-info span{color:#111}
+        [data-theme="light"] table{background:#fff;border-color:#d0d0d0}
+        [data-theme="light"] th{color:#fff}
+        [data-theme="light"] td{color:#333;border-color:#d0d0d0}
+        [data-theme="light"] tr:hover{background:#f5f7fa}
+        [data-theme="light"] .status-pending{background:#fef3c7;color:#d97706}
+        [data-theme="light"] .status-paid{background:#dcfce7;color:#16a34a}
+        [data-theme="light"] .status-canceled{background:#fee2e2;color:#dc2626}
+        [data-theme="light"] select.status-select{background:#fff;border-color:#d0d0d0;color:#111}
+        [data-theme="light"] .address-cell{color:#666}
+        [data-theme="light"] .logout-btn:hover{background:#d1d5db}
+        [data-theme="light"] .header-actions .back-link{color:#4f46e5}
+        [data-theme="light"] .refresh-btn{background:#e5e7eb;color:#000}
+        [data-theme="light"] th{background:#e5e7eb;color:#000}
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-body);
+            padding: 20px;
+            color: var(--text-primary);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        h1 { color: var(--text-primary); }
+        .header-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .back-link {
+            color: #4f46e5;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        .logout-btn {
+            background: #333;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .logout-btn:hover { background: #444; }
+        [data-theme="light"] .logout-btn { background: #e5e7eb; color: #000; }
+        .stats {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .stat-card {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            flex: 1;
+            min-width: 150px;
+            border: 1px solid var(--border);
+        }
+        .stat-card h3 { color: var(--text-dim); font-size: 14px; margin-bottom: 5px; }
+        .stat-card .value { font-size: 24px; font-weight: 700; color: var(--text-primary); }
+        .stat-card.pending .value { color: #f59e0b; }
+        .stat-card.paid .value { color: #22c55e; }
+        .stat-card.paid { flex: 2; }
+        .stat-card.paid .finance-info { color: var(--text-dim); font-size: 12px; margin-top: 8px; display: flex; justify-content: space-around; flex-wrap: wrap; gap: 5px; }
+        .stat-card.paid .finance-info span { color: var(--text-primary); font-weight: 600; }
+        .stat-card.canceled .value { color: #ef4444; }
+        
+        .table-wrapper { overflow-x: auto; }
+        table {
+            width: 100%;
+            background: #1a1a1a;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            border: 1px solid #333;
+            min-width: 800px;
+        }
+        th, td {
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+            white-space: nowrap;
+        }
+        th {
+            background: #333;
+            color: #fff;
+            font-weight: 600;
+            font-size: 13px;
+        }
+        tr:hover { background: #252525; }
+        
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-pending { background: #fef3c7; color: #d97706; }
+        .status-paid { background: #dcfce7; color: #16a34a; }
+        .status-canceled { background: #fee2e2; color: #dc2626; }
+        
+        select.status-select {
+            padding: 8px 12px;
+            border: 2px solid #333;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            background: #222;
+            color: #fff;
+        }
+        select.status-select:focus { outline: none; border-color: #4f46e5; }
+        
+        .address-cell {
+            font-family: monospace;
+            font-size: 11px;
+            max-width: 160px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #aaa;
+        }
+        
+        .refresh-btn {
+            background: #333;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .refresh-btn:hover { background: #444; }
+        
+        .empty {
+            text-align: center;
+            padding: 60px;
+            color: #666;
+        }
+        td { color: #ccc; }
+        .filters{display:flex;gap:8px;margin-bottom:15px;flex-wrap:wrap;align-items:center}
+        .filters input,.filters select{padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:13px;font-family:inherit}
+        .filters input:focus,.filters select:focus{outline:none;border-color:#4f46e5}
+        [data-theme="light"] .filters input,[data-theme="light"] .filters select{background:#fff;border-color:#d0d0d0;color:#111}
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .stat-card { padding: 15px; min-width: 100%; }
+            .stat-card .value { font-size: 20px; }
+            th, td { padding: 8px 6px; font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="home-btn" title="На главную"><img src="/static/logo.webp" alt="Home"></a>
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Сменить тему">
+            <svg class="theme-moon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            <svg class="theme-sun" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+    <div class="header">
+        <h1>Админ-панель</h1>
+        <div class="header-actions">
+            <button class="refresh-btn" onclick="loadOrders()">Обновить</button>
+            <button class="refresh-btn" onclick="exportExcel()">📥 Excel</button>
+            <a href="/admin/support" class="back-link">Обращения</a>
+            <a href="/admin/wallets" class="back-link">Кошельки</a>
+            <a href="/" class="back-link">На главную</a>
+            <button class="logout-btn" onclick="logout()">Выйти</button>
+        </div>
+    </div>
+    
+    <div class="stats">
+        <div class="stat-card pending">
+            <h3>Ожидают оплаты</h3>
+            <div class="value" id="countPending">0</div>
+        </div>
+        <div class="stat-card paid">
+            <h3>Оплачено</h3>
+            <div class="value" id="countPaid">0</div>
+            <div class="finance-info">
+                <div>USDT: <span id="totalUsdt">0</span></div>
+                <div>₽: <span id="totalRub">0 ₽</span></div>
+                <div>Комиссия (3%): <span id="totalCommission">0 ₽</span></div>
+            </div>
+        </div>
+        <div class="stat-card canceled">
+            <h3>Отменено</h3>
+            <div class="value" id="countCanceled">0</div>
+        </div>
+    </div>
+
+    <div class="filters">
+        <input type="date" id="filterDateFrom" placeholder="Дата от" onchange="applyFilters()">
+        <input type="date" id="filterDateTo" placeholder="Дата до" onchange="applyFilters()">
+        <input type="number" id="filterAmountMin" placeholder="USDT от" oninput="applyFilters()" style="width:100px;">
+        <input type="number" id="filterAmountMax" placeholder="USDT до" oninput="applyFilters()" style="width:100px;">
+        <select id="filterCurrency" onchange="applyFilters()">
+            <option value="">Валюта</option>
+        </select>
+        <select id="filterBank" onchange="applyFilters()"><option value="">Банк</option></select>
+        <select id="filterStatus" onchange="applyFilters()">
+            <option value="">Статус</option>
+            <option value="pending">Ожидает</option>
+            <option value="paid">Оплачено</option>
+            <option value="canceled">Отменён</option>
+        </select>
+        <select id="filterType" onchange="applyFilters()">
+            <option value="">Тип</option>
+            <option value="buy">Покупка</option>
+            <option value="sell">Продажа</option>
+        </select>
+        <input type="text" id="filterSearch" placeholder="Поиск по ID/телефону/адресу..." oninput="applyFilters()" style="flex:1;min-width:120px;">
+        <button class="refresh-btn" onclick="resetFilters()">Сброс</button>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Дата/Время</th>
+                <th>Тип</th>
+                <th>Сумма USDT</th>
+                <th>Сумма ₽</th>
+                <th>Валюта</th>
+                <th>Банк</th>
+                <th>Телефон</th>
+                <th>Адрес</th>
+                <th>Кошелёк</th>
+                <th>Статус</th>
+            </tr>
+        </thead>
+        <tbody id="ordersTable">
+            <tr><td colspan="11" class="empty">Загрузка...</td></tr>
+        </tbody>
+    </table>
+
+    <script>
+        function getToken() { return localStorage.getItem('admin_token'); }
+
+        function checkAuth() {
+            const token = getToken();
+            if (!token) {
+                window.location.href = '/admin/login?redirect=/admin';
+                return false;
+            }
+            return token;
+        }
+
+        function logout() {
+            localStorage.removeItem('admin_token');
+            window.location.href = '/admin/login';
+        }
+
+        function authHeaders() {
+            const token = checkAuth();
+            return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token };
+        }
+
+        let orders = [];
+        
+        async function loadOrders() {
+            try {
+                const token = checkAuth();
+                const response = await fetch('/api/orders', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (response.status === 401) { logout(); return; }
+                orders = await response.json();
+                populateFilterOptions();
+                renderOrders();
+            } catch (error) {
+                console.error('Error loading orders:', error);
+            }
+        }
+        
+        function populateFilterOptions() {
+            const currencies = new Set(), banks = new Set();
+            orders.forEach(o => { if (o.currency) currencies.add(o.currency); if (o.bank) banks.add(o.bank); });
+            const curSel = document.getElementById('filterCurrency');
+            curSel.innerHTML = '<option value="">Валюта</option>';
+            currencies.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; curSel.appendChild(o); });
+            const bankSel = document.getElementById('filterBank');
+            bankSel.innerHTML = '<option value="">Банк</option>';
+            banks.forEach(b => { const o = document.createElement('option'); o.value = b; o.textContent = b; bankSel.appendChild(o); });
+        }
+        
+        function applyFilters() {
+            renderOrders();
+        }
+        
+        function resetFilters() {
+            document.getElementById('filterDateFrom').value = '';
+            document.getElementById('filterDateTo').value = '';
+            document.getElementById('filterAmountMin').value = '';
+            document.getElementById('filterAmountMax').value = '';
+            document.getElementById('filterCurrency').value = '';
+            document.getElementById('filterBank').value = '';
+            document.getElementById('filterStatus').value = '';
+            document.getElementById('filterType').value = '';
+            document.getElementById('filterSearch').value = '';
+            renderOrders();
+        }
+        
+        function renderOrders() {
+            const tbody = document.getElementById('ordersTable');
+            
+            const dateFrom = document.getElementById('filterDateFrom').value;
+            const dateTo = document.getElementById('filterDateTo').value;
+            const amtMin = parseFloat(document.getElementById('filterAmountMin').value) || null;
+            const amtMax = parseFloat(document.getElementById('filterAmountMax').value) || null;
+            const curFilter = document.getElementById('filterCurrency').value;
+            const bankFilter = document.getElementById('filterBank').value;
+            const statusFilter = document.getElementById('filterStatus').value;
+            const typeFilter = document.getElementById('filterType').value;
+            const search = document.getElementById('filterSearch').value.toLowerCase().trim();
+            
+            const filtered = orders.filter(o => {
+                if (dateFrom) { const d = new Date(o.created_at); d.setHours(0,0,0,0); if (d < new Date(dateFrom)) return false; }
+                if (dateTo) { const d = new Date(o.created_at); d.setHours(23,59,59,999); if (d > new Date(dateTo)) return false; }
+                if (amtMin !== null && o.amount_usdt < amtMin) return false;
+                if (amtMax !== null && o.amount_usdt > amtMax) return false;
+                if (curFilter && o.currency !== curFilter) return false;
+                if (bankFilter && o.bank !== bankFilter) return false;
+                if (statusFilter && o.status !== statusFilter) return false;
+                if (typeFilter && o.order_type !== typeFilter) return false;
+                if (search) {
+                    const haystack = (o.order_id + ' ' + (o.phone||'') + ' ' + (o.deposit_address||'') + ' ' + (o.wallet||'')).toLowerCase();
+                    if (!haystack.includes(search)) return false;
+                }
+                return true;
+            });
+            
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="11" class="empty">Нет заказов по фильтру</td></tr>';
+                document.getElementById('countPending').textContent = '0';
+                document.getElementById('countPaid').textContent = '0';
+                document.getElementById('countCanceled').textContent = '0';
+                document.getElementById('totalUsdt').textContent = '0 USDT';
+                document.getElementById('totalRub').textContent = '0 ₽';
+                document.getElementById('totalCommission').textContent = '0 ₽';
+                return;
+            }
+            
+            let pending = 0, paid = 0, canceled = 0;
+            let html = '';
+            
+            for (let i = 0; i < filtered.length; i++) {
+                const order = filtered[i];
+                if (order.status === 'pending') pending++;
+                if (order.status === 'paid') paid++;
+                if (order.status === 'canceled') canceled++;
+                
+                const date = new Date(order.created_at);
+                const dateStr = date.toLocaleDateString('ru-RU');
+                const timeStr = date.toLocaleTimeString('ru-RU');
+                
+                const selectedPending = order.status === 'pending' ? 'selected' : '';
+                const selectedPaid = order.status === 'paid' ? 'selected' : '';
+                const selectedCanceled = order.status === 'canceled' ? 'selected' : '';
+                
+                const orderTypeClass = order.order_type === 'sell' ? 'status-paid' : 'status-pending';
+                const orderTypeText = order.order_type === 'sell' ? 'Продажа' : (order.asset_type === 'SOL' ? 'Покупка SOL' : 'Покупка');
+                
+                const rubAmount = order.amount_rub ? order.amount_rub.toFixed(2) + ' ₽' : '—';
+                const wallet = order.wallet ? order.wallet.slice(0,4)+'..'+order.wallet.slice(-4) : '—';
+                
+                html += '<tr>' +
+                    '<td><strong>' + order.order_id + '</strong></td>' +
+                    '<td>' + dateStr + '<br><small>' + timeStr + '</small></td>' +
+                    '<td><span class="status-badge ' + orderTypeClass + '">' + orderTypeText + '</span></td>' +
+                    '<td><strong>' + order.amount_usdt + '</strong> ' + (order.asset_type || 'USDT') + '</td>' +
+                    '<td>' + rubAmount + '</td>' +
+                    '<td>' + (order.currency || 'RUB') + '</td>' +
+                    '<td>' + order.bank + '</td>' +
+                    '<td>' + order.phone + '</td>' +
+                    '<td class="address-cell" title="' + order.deposit_address + '">' + (order.deposit_address ? order.deposit_address.slice(0,12)+'...' : '—') + '</td>' +
+                    '<td style="font-family:monospace;font-size:12px;color:var(--text-dim)">' + wallet + '</td>' +
+                    '<td>' +
+                        '<select class="status-select" onchange="updateStatus(\'' + order.order_id + '\', this.value)">' +
+                            '<option value="pending" ' + selectedPending + '>Ожидание</option>' +
+                            '<option value="paid" ' + selectedPaid + '>Оплачено</option>' +
+                            '<option value="canceled" ' + selectedCanceled + '>Отменено</option>' +
+                        '</select>' +
+                    '</td>' +
+                '</tr>';
+            }
+            
+            tbody.innerHTML = html;
+            
+            document.getElementById('countPending').textContent = pending;
+            document.getElementById('countPaid').textContent = paid;
+            document.getElementById('countCanceled').textContent = canceled;
+            
+            let totalUsdt = 0;
+            let totalRub = 0;
+            for (let i = 0; i < filtered.length; i++) {
+                if (filtered[i].status === 'paid') {
+                    totalUsdt += filtered[i].amount_usdt;
+                    if (filtered[i].amount_rub) totalRub += filtered[i].amount_rub;
+                }
+            }
+            const commission = totalRub * 0.03;
+            
+            document.getElementById('totalUsdt').textContent = totalUsdt.toFixed(2) + ' USDT';
+            document.getElementById('totalRub').textContent = totalRub.toFixed(2) + ' ₽';
+            document.getElementById('totalCommission').textContent = commission.toFixed(2) + ' ₽';
+        }
+        
+        async function updateStatus(orderId, newStatus) {
+            try {
+                const token = checkAuth();
+                const response = await fetch(`/api/orders/${orderId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({status: newStatus})
+                });
+                
+                if (response.ok) {
+                    const order = orders.find(o => o.order_id === orderId);
+                    if (order) order.status = newStatus;
+                    renderOrders();
+                } else {
+                    alert('Ошибка обновления статуса');
+                    loadOrders();
+                }
+            } catch (error) {
+                alert('Ошибка соединения');
+                loadOrders();
+            }
+        }
+        
+        async function exportExcel() {
+            const token = getToken();
+            if (!token) return;
+            try {
+                const response = await fetch('/api/orders/export', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (!response.ok) { alert('Ошибка экспорта'); return; }
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'orders_report.xlsx';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+            } catch (e) {
+                alert('Ошибка: ' + e.message);
+            }
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const btn = document.getElementById('themeToggle');
+            if (html.dataset.theme === 'light') {
+                delete html.dataset.theme;
+                const moon = btn.querySelector('.theme-moon');
+                const sun = btn.querySelector('.theme-sun');
+                if (moon) moon.style.display = '';
+                if (sun) sun.style.display = 'none';
+                localStorage.setItem('theme', 'dark');
+            } else {
+                html.dataset.theme = 'light';
+                const moon = btn.querySelector('.theme-moon');
+                const sun = btn.querySelector('.theme-sun');
+                if (moon) moon.style.display = 'none';
+                if (sun) sun.style.display = '';
+                localStorage.setItem('theme', 'light');
+            }
+        }
+        (function initTheme() {
+            const saved = localStorage.getItem('theme');
+            const btn = document.getElementById('themeToggle');
+            if (saved === 'light') {
+                document.documentElement.dataset.theme = 'light';
+                if (btn) {
+                    const moon = btn.querySelector('.theme-moon');
+                    const sun = btn.querySelector('.theme-sun');
+                    if (moon) moon.style.display = 'none';
+                    if (sun) sun.style.display = '';
+                }
+            }
+        })();
+
+        loadOrders();
+        
+        setInterval(loadOrders, 5000);
+    </script>
+</body>
+</html>

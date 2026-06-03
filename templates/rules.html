@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Правила</title>
+    <style>
+        :root{--bg-body:#0a0a0a;--bg-card:#1a1a1a;--border:#333;--text-primary:#fff;--text-dim:#888;--text-dimmer:#666}[data-theme="light"]{--bg-body:#f0f2f5;--bg-card:#fff;--border:#d0d0d0;--text-primary:#111;--text-dim:#555;--text-dimmer:#999}
+        .theme-toggle{position:fixed;top:16px;left:20px;z-index:999;padding:6px 12px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border);cursor:pointer;font-size:13px;transition:.3s;color:var(--text-primary);font-family:inherit;white-space:nowrap}.theme-toggle:hover{background:var(--bg-card-alt)}
+        .home-btn{position:fixed;top:14px;left:20px;z-index:999;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .3s;text-decoration:none}.home-btn:hover{transform:scale(1.1)}.home-btn img{width:32px;height:32px;object-fit:contain;filter:invert(1)}[data-theme="light"] .home-btn img{filter:none}
+        [data-theme="light"] .rule h2{color:#111}[data-theme="light"] .rule p{color:#555}[data-theme="light"] .rule ul{color:#555}[data-theme="light"] a{color:#4f46e5}
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-body);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: var(--text-primary);
+        }
+        .container {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+        h1 { margin-bottom: 25px; font-size: 28px; }
+        .rule { text-align: left; margin-bottom: 25px; }
+        .rule h2 { color: var(--text-primary); font-size: 16px; margin-bottom: 8px; }
+        .rule p { color: var(--text-dim); font-size: 14px; line-height: 1.6; margin: 0; }
+        .rule ul { color: var(--text-dim); font-size: 14px; padding-left: 20px; margin-top: 5px; line-height: 1.8; }
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            color: #4f46e5;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        @media (max-width: 480px) {
+            .container { padding: 25px; }
+            h1 { font-size: 22px; }
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="home-btn" title="На главную"><img src="/static/logo.webp" alt="Home"></a>
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Сменить тему">
+            <svg class="theme-moon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            <svg class="theme-sun" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+    <div class="container">
+        <h1>Правила</h1>
+        
+        <div class="rule">
+            <h2>1. Общие положения</h2>
+            <p>Используя сервис CTS Exchange, вы соглашаетесь с данными правилами. Сервис предоставляет услуги по обмену криптовалют и не является банковской или финансовой организацией.</p>
+        </div>
+
+        <div class="rule">
+            <h2>2. Оформление заказа</h2>
+            <ul>
+                <li>Указывайте корректные реквизиты для получения перевода</li>
+                <li>Сумма заказа фиксируется в момент создания и не меняется</li>
+                <li>Срок оплаты заказа — 30 минут с момента создания</li>
+            </ul>
+        </div>
+
+        <div class="rule">
+            <h2>3. Оплата</h2>
+            <ul>
+                <li>Перевод средств осуществляется строго на указанный адрес депозита</li>
+                <li>После подтверждения транзакции сетью статус заказа меняется на «Оплачен»</li>
+                <li>Не отправляйте средства на другие адреса — это приведёт к потере средств</li>
+            </ul>
+        </div>
+
+        <div class="rule">
+            <h2>4. Возврат и отмена</h2>
+            <ul>
+                <li>Отмена заказа возможна только до подтверждения оплаты</li>
+                <li>При отмене после оплаты возврат осуществляется в USDT за вычетом комиссии сети</li>
+                <li>Возврат обрабатывается в течение 24 часов</li>
+            </ul>
+        </div>
+
+        <div class="rule">
+            <h2>5. Обязанности пользователя</h2>
+            <ul>
+                <li>Не использовать сервис для незаконной деятельности</li>
+                <li>Не создавать ложные заявки в поддержку</li>
+                <li>Соблюдать правила финансовой безопасности</li>
+            </ul>
+        </div>
+
+        <div class="rule">
+            <h2>6. Конфиденциальность</h2>
+            <p>Мы не передаём ваши персональные данные третьим лицам. Вся информация используется исключительно для обработки заказов.</p>
+        </div>
+
+        <a href="/">← На главную</a>
+    </div>
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            const btn = document.getElementById('themeToggle');
+            if (html.dataset.theme === 'light') {
+                delete html.dataset.theme;
+                const moon = btn.querySelector('.theme-moon');
+                const sun = btn.querySelector('.theme-sun');
+                if (moon) moon.style.display = '';
+                if (sun) sun.style.display = 'none';
+                localStorage.setItem('theme', 'dark');
+            } else {
+                html.dataset.theme = 'light';
+                const moon = btn.querySelector('.theme-moon');
+                const sun = btn.querySelector('.theme-sun');
+                if (moon) moon.style.display = 'none';
+                if (sun) sun.style.display = '';
+                localStorage.setItem('theme', 'light');
+            }
+        }
+        (function initTheme() {
+            const saved = localStorage.getItem('theme');
+            const btn = document.getElementById('themeToggle');
+            if (saved === 'light') {
+                document.documentElement.dataset.theme = 'light';
+                if (btn) {
+                    const moon = btn.querySelector('.theme-moon');
+                    const sun = btn.querySelector('.theme-sun');
+                    if (moon) moon.style.display = 'none';
+                    if (sun) sun.style.display = '';
+                }
+            }
+        })();
+    </script>
+</body>
+</html>

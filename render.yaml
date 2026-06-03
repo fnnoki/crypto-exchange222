@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: crypto-exchange
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_SECRET
+        sync: false
+      - key: ETH_SEED
+        sync: false
+      - key: SOLANA_SEED
+        sync: false
+      - key: TRON_SEED
+        sync: false
+      - key: TRON_PRIVATE_KEY
+        sync: false
+      - key: TRON_ADDRESS
+        sync: false
+      - key: RENDER
+        value: "true"

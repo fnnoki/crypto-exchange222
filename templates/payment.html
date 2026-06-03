@@ -1,0 +1,1696 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Оплата USDT</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/@solana/web3.js@1.98.0/lib/index.iife.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.1/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        :root{--bg-body:#0a0a0a;--bg-card:#1a1a1a;--bg-card-alt:#222;--bg-input:#222;--bg-calc:#111;--bg-result-ok:#0d2818;--bg-result-error:#2d1515;--bg-chat-input:#151515;--bg-rate-from:#1e1e3f;--bg-rate-to:#2d2d5a;--border:#333;--border2:#333;--text-primary:#fff;--text-secondary:#ccc;--text-muted:#aaa;--text-dim:#888;--text-dimmer:#666;--shadow:0 20px 60px rgba(0,0,0,0.5)}[data-theme="light"]{--bg-body:#f0f2f5;--bg-card:#fff;--bg-card-alt:#f5f7fa;--bg-input:#fff;--bg-calc:#f8f9fa;--bg-result-ok:#ecfdf5;--bg-result-error:#fef2f2;--bg-chat-input:#f0f2f5;--bg-rate-from:#eef2ff;--bg-rate-to:#e0e7ff;--border:#d0d0d0;--border2:#d0d0d0;--text-primary:#111;--text-secondary:#333;--text-muted:#555;--text-dim:#777;--text-dimmer:#999;--shadow:0 20px 60px rgba(0,0,0,0.08)}
+        .theme-toggle{padding:4px 10px;border-radius:8px;background:var(--bg-card);border:1px solid var(--border);cursor:pointer;font-size:13px;transition:.3s;color:var(--text-primary);font-family:inherit;white-space:nowrap;display:flex;align-items:center;gap:4px}
+        .theme-toggle:hover{background:var(--bg-card-alt)}
+        .home-btn{position:fixed;top:14px;left:20px;z-index:999;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .3s;text-decoration:none}.home-btn:hover{transform:scale(1.1)}.home-btn img{width:32px;height:32px;object-fit:contain;filter:invert(1)}[data-theme="light"] .home-btn img{filter:none}
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-body);
+            min-height: 100vh;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 20px;
+        }
+        .main-layout {
+            display: flex; gap: 20px; width: 100%;
+            max-width: 1200px; margin: 60px auto 0;
+            align-items: flex-start;
+        }
+        .left-column { width: 450px; flex-shrink: 0; }
+        .right-column { flex: 1; min-width: 0; }
+        .container {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 450px;
+            width: 100%;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+        h1 {
+            color: var(--text-primary);
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        input, select {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid var(--border2);
+            border-radius: 10px;
+            font-size: 16px;
+            background: var(--bg-input);
+            color: var(--text-primary);
+            transition: border-color 0.3s;
+            font-family: inherit;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #4f46e5;
+        }
+        button {
+            width: 100%;
+            padding: 16px;
+            background: #333;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-family: inherit;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        [data-theme="light"] button { background: #e5e7eb; color: #000; box-shadow: none; }
+        [data-theme="light"] button:hover { background: #d1d5db; }
+        [data-theme="light"] .result .label { color: #666; }
+        [data-theme="light"] .result .value { color: #111; }
+        [data-theme="light"] .result p { color: #444; }
+        [data-theme="light"] .rate-display .label { color: #666; }
+        [data-theme="light"] .rate-display .label span { color: #d97706; }
+        [data-theme="light"] .order-timer .timer-label { color: #dc2626; }
+        [data-theme="light"] .order-timer { background: #fef2f2; border-color: #fca5a5; }
+        [data-theme="light"] .order-timer .timer-value { color: #dc2626; }
+        [data-theme="light"] .wallet-header-disconnect { border-color: #aaa; color: #999; }
+        [data-theme="light"] .chat-widget { background: #fff; border-color: #d0d0d0; }
+        [data-theme="light"] .chat-widget-header { background: #fff; }
+        [data-theme="light"] .chat-widget-msg.client { background: #4f46e5; }
+        [data-theme="light"] .chat-widget-msg.admin { background: #f0f2f5; color: #333; }
+        [data-theme="light"] .chat-widget-input { background: #f8f9fa; border-color: #d0d0d0; }
+        [data-theme="light"] .chat-widget-input input { background: #fff; border-color: #d0d0d0; color: #111; }
+        [data-theme="light"] .chat-widget-start p { color: #666; }
+        [data-theme="light"] .calculator { background: #f8f9fa; border-color: #d0d0d0; }
+        [data-theme="light"] .calc-row .calc-label { color: #666; }
+        [data-theme="light"] .calc-row .calc-value { color: #111; }
+        [data-theme="light"] .calc-divider { border-color: #d0d0d0; }
+        [data-theme="light"] .rate-display { background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%); border-color: #c7d2fe; }
+        [data-theme="light"] .rate-display .value { color: #16a34a; }
+        [data-theme="light"] .nav-links a { color: #4f46e5; }
+        [data-theme="light"] .footer a { color: #999; }
+        [data-theme="light"] .footer a:hover { color: #4f46e5; }
+        [data-theme="light"] .footer { border-color: #d0d0d0; }
+        [data-theme="light"] .modal-content { background: #fff; border-color: #d97706; }
+        [data-theme="light"] .modal-content h3 { color: #d97706; }
+        [data-theme="light"] .modal-content p { color: #555; }
+        [data-theme="light"] .modal-btn.cancel { background: #f0f2f5; color: #333; }
+        [data-theme="light"] .wallet-header-error { color: #dc2626; }
+        [data-theme="light"] .chat-widget-msg .time { color: #999; }
+        [data-theme="light"] .chat-bubble { background: #e5e7eb; color: #000; }
+        [data-theme="light"] .modal-btn.confirm { color: #000; }
+        [data-theme="light"] .copy-btn { color: #000; }
+        [data-theme="light"] .pay-with-phantom { color: #000; }
+        [data-theme="light"] .wallet-connect-panel { border-color: #d0d0d0; }
+        [data-theme="light"] .wallet-option { background: #f5f7fa; border-color: #d0d0d0; }
+        [data-theme="light"] .wallet-option:hover { background: #eef2ff; }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 25px;
+            padding: 20px;
+            background: var(--bg-result-ok);
+            border: 2px solid #22c55e;
+            border-radius: 10px;
+            display: none;
+        }
+        .result.show { display: block; }
+        .result h3 { color: #22c55e; margin-bottom: 15px; }
+        .result p { margin-bottom: 10px; word-break: break-all; color: var(--text-secondary); }
+        .result .label { color: var(--text-dim); font-weight: 500; }
+        .result .value { color: var(--text-primary); font-weight: 600; }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center; align-items: center;
+            z-index: 1000;
+        }
+        .modal.show { display: flex; }
+        .modal-content {
+            background: var(--bg-card); padding: 30px; border-radius: 15px;
+            max-width: 400px; text-align: center; border: 2px solid #f59e0b;
+        }
+        .modal-content h3 { color: #f59e0b; margin-bottom: 15px; }
+        .modal-content p { color: var(--text-secondary); margin-bottom: 20px; line-height: 1.5; }
+        .modal-btn { padding: 12px 30px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; font-family: inherit; }
+        .modal-btn.confirm { background: #333; color: #fff; font-weight: 600; }
+        .modal-btn.cancel { background: var(--bg-card-alt); color: var(--text-primary); }
+        [data-theme="light"] .modal-btn.confirm { background: #e5e7eb; color: #000; }
+        .modal-buttons { display: flex; justify-content: center; gap: 15px; }
+        .order-timer {
+            background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
+            padding: 15px; border-radius: 10px; margin-top: 15px;
+            text-align: center; border: 1px solid #ef4444;
+        }
+        .order-timer .timer-label { color: #fca5a5; font-size: 12px; margin-bottom: 5px; }
+        .order-timer .timer-value { color: var(--text-primary); font-size: 28px; font-weight: bold; font-family: inherit; letter-spacing: 1px; }
+        .order-timer.urgent { animation: pulse 1s infinite; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
+        .copy-btn { background: #333; color: #fff; margin-top: 10px; padding: 10px; font-size: 14px; }
+        [data-theme="light"] .copy-btn { background: #e5e7eb; color: #000; }
+        .error { background: var(--bg-result-error); border-color: #ef4444; }
+        .error h3 { color: #ef4444; }
+        .nav-links { text-align: center; margin-top: 20px; }
+        .nav-links a { color: #4f46e5; text-decoration: none; font-size: 14px; }
+        .rate-display {
+            background: linear-gradient(135deg, var(--bg-rate-from) 0%, var(--bg-rate-to) 100%);
+            padding: 15px; border-radius: 12px; margin-bottom: 20px;
+            text-align: center; border: 1px solid var(--border);
+        }
+        .rate-display .label { color: var(--text-dim); font-size: 12px; margin-bottom: 5px; }
+        .rate-display .label span { color: #f59e0b; font-size: 11px; }
+        .rate-display .value { color: #22c55e; font-size: 24px; font-weight: bold; }
+        .rate-progress { width: 100%; height: 4px; background: var(--border); border-radius: 2px; margin-top: 10px; overflow: hidden; }
+        .rate-progress-bar { height: 100%; background: linear-gradient(90deg, #4f46e5, #7c3aed); width: 100%; transition: width 1s linear; }
+        .calculator { background: var(--bg-calc); border-radius: 10px; padding: 15px; margin-bottom: 20px; border: 1px solid var(--border); }
+        .calc-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; }
+        .calc-row .calc-label { color: var(--text-dim); font-size: 13px; }
+        .calc-row .calc-value { color: var(--text-primary); font-weight: 600; font-size: 14px; }
+        .calc-row .calc-value.highlight { color: #22c55e; font-size: 18px; }
+        .calc-divider { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
+        .footer { margin-top: 25px; padding-top: 20px; border-top: 1px solid var(--border); display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
+        .footer a { color: var(--text-dimmer); text-decoration: none; font-size: 13px; transition: color 0.2s; }
+        .footer a:hover { color: #4f46e5; }
+        @media (max-width: 480px) {
+            .container { padding: 25px; }
+            h1 { font-size: 20px; }
+            input, select { padding: 12px; font-size: 15px; }
+            .rate-display .value { font-size: 20px; }
+            .order-timer .timer-value { font-size: 24px; }
+            .footer { gap: 12px; }
+            .footer a { font-size: 12px; }
+        }
+
+        /* Chart */
+        .chart-container {
+            background: var(--bg-card); border-radius: 20px;
+            padding: 20px; border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+        .chart-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 15px;
+        }
+        .chart-label { color: var(--text-muted); font-size: 13px; font-weight: 500; }
+        .chart-price { color: var(--text-primary); font-size: 20px; font-weight: 700; }
+
+        /* Wallet networks */
+        .wallet-networks { display: flex; gap: 4px; margin-left: 4px; }
+        .wallet-network-icon {
+            width: 18px; height: 18px; border-radius: 50%; object-fit: contain;
+            cursor: pointer; transition: transform 0.2s; opacity: 0.5;
+        }
+        .wallet-network-icon.active { opacity: 1; }
+        .wallet-network-icon:hover { transform: scale(1.2); }
+        .wallet-networks-dropdown {
+            position: fixed; top: 64px; right: 24px; z-index: 910;
+            width: 240px; background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 12px; box-shadow: 0 12px 48px rgba(0,0,0,0.5);
+            display: none; flex-direction: column; padding: 12px;
+        }
+        .wallet-networks-dropdown.open { display: flex; }
+        .wallet-network-row {
+            display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+            border-radius: 8px; transition: background 0.2s; cursor: default;
+        }
+        .wallet-network-row:hover { background: var(--bg-card-alt); }
+        .wallet-network-row img { width: 22px; height: 22px; border-radius: 50%; }
+        .wallet-network-row .net-name { flex: 1; font-size: 13px; color: var(--text-primary); font-weight: 500; }
+        .wallet-network-row .net-balance { font-size: 12px; color: var(--text-dim); font-weight: 600; }
+        .wallet-network-row .net-status { font-size: 10px; color: #22c55e; }
+        .wallet-network-row .net-status.disconnected { color: var(--text-dimmer); }
+
+        .wallet-header {
+            position: fixed; top: 16px; right: 24px; z-index: 900;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .wallet-header-connect {
+            padding: 6px 10px; background: #333; border: none;
+            color: #fff; border-radius: 10px; font-size: 13px; font-weight: 500;
+            cursor: pointer; display: flex; align-items: center; gap: 6px;
+            transition: all 0.2s; font-family: inherit;
+        }
+        .wallet-header-connect:hover { background: #444; }
+        .wallet-header-connect svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+        [data-theme="light"] .wallet-header-connect { background: #e5e7eb; color: #000; }
+        [data-theme="light"] .wallet-header-connect:hover { background: #d1d5db; }
+        .wallet-connect-panel {
+            position: fixed; top: 64px; right: 24px; z-index: 910;
+            width: 300px; background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 14px; box-shadow: 0 12px 48px rgba(0,0,0,0.5);
+            display: none; flex-direction: column; overflow: hidden;
+        }
+        .wallet-connect-panel.open { display: flex; }
+        .wallet-connect-banner { width: 100%; height: 120px; object-fit: cover; display: block; }
+        .wallet-connect-body { padding: 16px; }
+        .wallet-connect-body h3 { font-size: 15px; margin-bottom: 4px; color: var(--text-primary); }
+        .wallet-connect-body p { font-size: 12px; color: var(--text-dim); margin-bottom: 16px; line-height: 1.4; }
+        .wallet-option {
+            display: flex; align-items: center; gap: 12px; padding: 12px;
+            border-radius: 10px; cursor: pointer; border: 1px solid var(--border);
+            transition: all 0.2s; background: var(--bg-card-alt);
+        }
+        .wallet-option:hover { border-color: #4f46e5; background: rgba(79,70,229,0.08); }
+        .wallet-option-icon { width: 32px; height: 32px; border-radius: 8px; object-fit: contain; }
+        .wallet-option-info { flex: 1; }
+        .wallet-option-info strong { display: block; font-size: 13px; color: var(--text-primary); }
+        .wallet-option-info span { font-size: 11px; color: var(--text-dim); }
+        .wallet-option-arrow { color: var(--text-dim); font-size: 16px; }
+        .wallet-connect-error { color: #ef4444; font-size: 11px; display: none; padding: 8px 16px 0; }
+        .wallet-connect-error.show { display: block; }
+        .wallet-header-info {
+            display: flex; align-items: center; gap: 10px; padding: 6px 14px;
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+        }
+        .wallet-header-icon { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; }
+        .wallet-header-name { color: var(--text-primary); font-size: 12px; font-weight: 600; }
+        .wallet-header-balance {
+            color: var(--text-primary); font-size: 11px; cursor: pointer;
+            padding: 1px 6px; border-radius: 4px;
+        }
+        .wallet-header-balance:hover { background: var(--bg-card-alt); }
+        .wallet-balance-dropdown {
+            position: fixed; top: 64px; right: 24px; z-index: 910;
+            width: 220px; background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 12px; box-shadow: 0 12px 48px rgba(0,0,0,0.5);
+            display: none; flex-direction: column; padding: 8px;
+        }
+        .wallet-balance-dropdown.open { display: flex; }
+        .wallet-balance-row {
+            display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+            border-radius: 8px; transition: background 0.2s; cursor: default;
+        }
+        .wallet-balance-row:hover { background: var(--bg-card-alt); }
+        .wallet-balance-row .bal-name { flex: 1; font-size: 13px; color: var(--text-primary); font-weight: 500; }
+        .wallet-balance-row .bal-value { font-size: 12px; color: var(--text-dim); font-weight: 600; }
+        .wallet-balance-row .bal-icon { width: 20px; height: 20px; border-radius: 50%; object-fit: contain; }
+        .wallet-header-disconnect {
+            width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid var(--text-dimmer);
+            background: transparent; color: var(--text-dim); cursor: pointer;
+            display: flex; align-items: center; justify-content: center; padding: 0;
+            font-size: 13px; line-height: 1;
+            transition: all 0.2s;
+        }
+        .wallet-header-disconnect:hover { border-color: #ef4444; color: #ef4444; background: rgba(239,68,68,0.1); }
+        .wallet-header-account {
+            display: inline-flex; align-items: center; margin-left: 4px;
+            text-decoration: none; color: inherit;
+        }
+        .wallet-header-account svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
+        .wallet-header-account:hover { opacity: 0.7; }
+        .wallet-header-error {
+            position: absolute; top: 100%; right: 0; margin-top: 4px;
+            color: #ef4444; font-size: 11px; white-space: nowrap; display: none;
+        }
+        .wallet-header-error.show { display: block; }
+        .pay-with-phantom {
+            width: 100%; padding: 14px; background: #333;
+            color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 700;
+            cursor: pointer; margin-top: 15px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-family: inherit;
+        }
+        .pay-with-phantom:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
+        [data-theme="light"] .pay-with-phantom { background: #e5e7eb; color: #000; }
+        .pay-with-phantom:disabled { opacity: 0.6; cursor: not-allowed; }
+        @media (max-width: 480px) {
+            .wallet-header { right: 10px; top: 10px; }
+            .wallet-connect-panel { right: 10px; width: calc(100% - 20px); top: 58px; }
+        }
+
+        .chat-bubble {
+            position: fixed; bottom: 24px; right: 24px; z-index: 900;
+            width: 48px; height: 48px; border-radius: 50%;
+            background: #333;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            transition: transform 0.2s; color: #fff; border: none;
+        }
+        .chat-bubble:hover { transform: scale(1.1); }
+        .chat-bubble svg { width: 22px; height: 22px; fill: currentColor; }
+        .chat-widget {
+            position: fixed; bottom: 84px; right: 24px; z-index: 900;
+            width: 320px; max-height: 440px; background: var(--bg-card);
+            border-radius: 12px; border: 1px solid var(--border);
+            display: none; flex-direction: column; overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+        .chat-widget.open { display: flex; }
+        .chat-widget-header {
+            padding: 10px 14px; background: var(--bg-card-alt);
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+        .chat-widget-header h4 { color: var(--text-primary); font-size: 13px; font-weight: 600; }
+        .chat-widget-header .close-chat { background: none; border: none; color: var(--text-dim); font-size: 16px; cursor: pointer; padding: 2px 4px; line-height: 1; }
+        .chat-widget-header .close-chat:hover { color: var(--text-primary); }
+        .chat-widget-msgs { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 6px; min-height: 180px; max-height: 280px; }
+        .chat-widget-msg { max-width: 85%; padding: 6px 10px; border-radius: 8px; font-size: 12px; line-height: 1.4; word-wrap: break-word; }
+        .chat-widget-msg.client { background: #4f46e5; color: #fff; align-self: flex-end; }
+        .chat-widget-msg.admin { background: var(--bg-card-alt); color: var(--text-secondary); align-self: flex-start; }
+        .chat-widget-msg .time { font-size: 10px; color: var(--text-dim); margin-top: 2px; display: block; }
+        .chat-widget-input { padding: 8px 10px; border-top: 1px solid var(--border); display: flex; gap: 6px; background: var(--bg-chat-input); }
+        .chat-widget-input input { flex: 1; padding: 6px 10px; border: 1px solid var(--border2); border-radius: 6px; font-size: 12px; background: var(--bg-input); color: var(--text-primary); }
+        .chat-widget-input input:focus { outline: none; border-color: #4f46e5; }
+        .chat-widget-input button { width: auto; padding: 6px 12px; margin: 0; font-size: 12px; }
+        .chat-widget-start { padding: 16px; text-align: center; }
+        .chat-widget-start p { color: var(--text-dim); font-size: 12px; margin-bottom: 10px; }
+        .chat-widget-start button { width: auto; padding: 8px 18px; margin: 0; font-size: 13px; }
+        @media (max-width: 480px) {
+            .chat-bubble { bottom: 16px; right: 16px; width: 42px; height: 42px; }
+            .chat-bubble svg { width: 20px; height: 20px; }
+            .chat-widget { right: 10px; width: calc(100% - 20px); bottom: 68px; max-height: 380px; }
+        }
+    </style>
+    <style>
+        #bgCanvas{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:0;pointer-events:none}
+        .container{position:relative;z-index:1}
+    </style>
+</head>
+<body>
+    <canvas id="bgCanvas"></canvas>
+    <a href="/" class="home-btn" title="На главную"><img src="/static/logo.webp" alt="Home"></a>
+    <!-- Wallet header - top right -->
+    <div class="wallet-header" id="walletHeader">
+        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Сменить тему">
+            <svg class="theme-moon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            <svg class="theme-sun" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+        <button class="wallet-header-connect" id="walletConnectBtn" onclick="toggleWalletPanel()">
+            <svg viewBox="0 0 24 24"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+        </button>
+        <div class="wallet-header-info" id="walletHeaderInfo" style="display:none;">
+            <img src="/static/logo.webp" class="wallet-header-icon">
+            <div class="wallet-header-details">
+                <div class="wallet-header-name" id="walletNickname">Загрузка...</div>
+                <div class="wallet-header-balance" id="walletHeaderBalance" onclick="toggleBalanceDropdown()">— SOL</div>
+                <div class="wallet-balance-dropdown" id="walletBalanceDropdown"></div>
+            </div>
+            <a href="/account" class="wallet-header-account" title="Личный кабинет"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></a>
+            <button class="wallet-header-disconnect" onclick="disconnectWallet()">✕</button>
+        </div>
+        <div class="wallet-networks" id="walletNetworks" style="display:none;">
+            <img src="https://img.phantom.app/PhantomIcon.svg" class="wallet-network-icon" onclick="showNetworkDropdown()" title="Сети" id="networksToggleIcon">
+        </div>
+        <div class="wallet-networks-dropdown" id="walletNetworksDropdown">
+            <div class="wallet-network-row"><img src="https://img.phantom.app/PhantomIcon.svg" alt="Solana"><span class="net-name">Solana</span><span class="net-balance" id="netBalSol">—</span><span class="net-status" id="netStatusSol">✕</span></div>
+            <div class="wallet-network-row"><img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" alt="Ethereum"><span class="net-name">Ethereum</span><span class="net-balance" id="netBalEth">—</span><span class="net-status" id="netStatusEth">✕</span></div>
+            <div class="wallet-network-row"><img src="https://cryptologos.cc/logos/arbitrum-arb-logo.png" alt="Arbitrum" style="border-radius:0;"><span class="net-name">Arbitrum</span><span class="net-balance" id="netBalArb">—</span><span class="net-status" id="netStatusArb">✕</span></div>
+            <div class="wallet-network-row"><img src="https://cryptologos.cc/logos/bnb-bnb-logo.png" alt="BNB Chain" style="border-radius:0;"><span class="net-name">BNB Chain</span><span class="net-balance" id="netBalBnb">—</span><span class="net-status" id="netStatusBnb">✕</span></div>
+        </div>
+        <div class="wallet-connect-panel" id="walletConnectPanel">
+            <img src="/static/wallet-banner.webp" class="wallet-connect-banner" alt="">
+            <div class="wallet-connect-body">
+                <h3>Подключить кошелёк</h3>
+                <p>Выберите способ подключения, чтобы продолжить</p>
+                <div class="wallet-option" onclick="connectPhantom()">
+                    <img src="https://img.phantom.app/PhantomIcon.svg" class="wallet-option-icon" alt="Phantom">
+                    <div class="wallet-option-info">
+                        <strong>Phantom</strong>
+                        <span>Solana кошелёк</span>
+                    </div>
+                    <span class="wallet-option-arrow">→</span>
+                </div>
+                <div class="wallet-option" onclick="connectMetaMask()" style="margin-top:8px;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" class="wallet-option-icon" alt="MetaMask">
+                    <div class="wallet-option-info">
+                        <strong>MetaMask</strong>
+                        <span>Ethereum кошелёк</span>
+                    </div>
+                    <span class="wallet-option-arrow">→</span>
+                </div>
+                <div class="wallet-connect-error" id="walletPanelError"></div>
+            </div>
+        </div>
+        <div class="wallet-header-error" id="walletHeaderError"></div>
+    </div>
+
+    <div class="main-layout">
+        <div class="left-column">
+    <div class="container">
+        <div class="rate-display">
+            <div class="label">Курс покупки <span>(+3% комиссия)</span></div>
+            <div class="value" id="usdtRate">Загрузка...</div>
+            <div class="rate-progress"><div class="rate-progress-bar" id="rateProgressBar"></div></div>
+        </div>
+        <h1>Получить валюту</h1>
+        <form id="paymentForm" autocomplete="off">
+            <div class="form-group">
+                <label>Актив</label>
+                <select name="asset_type" id="assetTypeSelect" onchange="onAssetChange()">
+                    <option value="USDT">USDT (TRC20)</option>
+                    <option value="SOL">SOL (Solana)</option>
+                    <option value="ETH">ETH (Ethereum)</option>
+                    <option value="ARB">ARB (Arbitrum)</option>
+                    <option value="BNB">BNB (BNB Chain)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label id="amountLabel">Сумма USDT</label>
+                <input type="number" step="0.01" min="0.01" name="amount_usdt" id="amountUsdt" required placeholder="Введите сумму">
+            </div>
+            <div class="calculator" id="calculator">
+                <div class="calc-row">
+                    <span class="calc-label" id="calcSendLabel">Отправляете</span>
+                    <span class="calc-value" id="calcSend">0 USDT</span>
+                </div>
+                <hr class="calc-divider">
+                <div class="calc-row">
+                    <span class="calc-label">Получаете</span>
+                    <span class="calc-value highlight" id="calcReceive">0</span>
+                </div>
+                <div class="calc-row" style="margin-top:5px;">
+                    <span class="calc-label">Комиссия</span>
+                    <span class="calc-value" style="color:#f59e0b;font-size:13px;" id="calcCommission">0 (0%)</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Валюта</label>
+                <select name="currency" id="currencySelect" required><option value="">Выберите валюту</option></select>
+            </div>
+            <div class="form-group">
+                <label>Банк</label>
+                <select name="bank" id="bankSelect" required disabled><option value="">Сначала выберите валюту</option></select>
+            </div>
+            <div class="form-group">
+                <label id="accountLabel">Номер телефона или карты</label>
+                <input type="text" inputmode="numeric" name="account_details" id="accountInput" required placeholder="" oninput="onAccountInput(this)" autocomplete="off">
+            </div>
+            <button type="submit" id="submitBtn">Отправить USDT</button>
+        </form>
+
+        <div id="result" class="result">
+            <h3 id="resultHeader">Отправьте USDT для получения валюты</h3>
+            <p><span class="label">ID заказа:</span> <span class="value" id="resOrderId"></span></p>
+            <p><span class="label">Отправляете:</span> <span class="value" id="resAmount"></span> <span id="resAmountAsset">USDT</span></p>
+            <p><span class="label">Получаете:</span> <span class="value" id="resAmountRub"></span></p>
+            <p><span class="label">Комиссия:</span> <span class="value" id="resCommission" style="color:#f59e0b;"></span></p>
+            <p><span class="label" id="resultAddrLabel">Адрес для оплаты (TRC20):</span></p>
+            <p class="value" id="resAddress" style="font-size:13px;"></p>
+            <button class="copy-btn" onclick="copyAddress()">Копировать адрес</button>
+            <div style="margin-top:15px;text-align:center;">
+                <p class="label" style="margin-bottom:10px;">QR код для оплаты:</p>
+                <div id="qrCode" style="display:inline-block;"></div>
+            </div>
+            <p style="margin-top:15px;"><span class="label">Статус:</span> <span class="value" id="resStatus"></span></p>
+            <p style="margin-top:5px;"><a href="/track" style="color:#4f46e5;font-size:13px;">Проверить статус →</a> <span style="margin:0 8px;color:var(--text-dimmer);">|</span> <a href="/" style="color:#4f46e5;font-size:13px;">Новый заказ →</a></p>
+            <div class="order-timer" id="orderTimer" style="display:none;">
+                <div class="timer-label">Время на оплату заказа</div>
+                <div class="timer-value" id="timerValue">15:00</div>
+            </div>
+            <button class="pay-with-phantom" id="payWithPhantom" onclick="payWithPhantom()" style="display:none;">
+                ⚡ Оплатить SOL через Phantom
+            </button>
+        </div>
+
+        <div class="nav-links">
+            <a href="/sell">Получить USDT</a>
+            <span style="margin:0 10px;color:#666;">|</span>
+            <a href="/track">Статус заказа</a>
+            <span style="margin:0 10px;color:#666;">|</span>
+            <a href="/account">Личный кабинет</a>
+        </div>
+        <div class="footer">
+            <a href="/about">О нас</a>
+            <a href="/rules">Правила</a>
+            <a href="/support">Поддержка</a>
+        </div>
+    </div><!-- /container -->
+        </div><!-- /left-column -->
+
+        <div class="right-column">
+            <div class="chart-container" id="chartContainer">
+                <div class="chart-header">
+                    <span class="chart-label" id="chartLabel">SOL/USDT · Binance</span>
+                    <span class="chart-price" id="chartPrice">—</span>
+                </div>
+                <div id="tradingviewChart" style="width:100%;height:420px;"></div>
+            </div>
+        </div>
+
+    </div><!-- /main-layout -->
+
+    <div class="modal" id="warningModal">
+        <div class="modal-content">
+            <h3>⚠️ Важное предупреждение</h3>
+            <p id="modalText">Вы отправляете <span id="modalAssetName">USDT</span> и получаете выбранную валюту. У вас будет <strong>15 минут</strong> на оплату.</p>
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" onclick="closeModal()">Отмена</button>
+                <button class="modal-btn confirm" onclick="confirmOrder()">Отправить <span id="modalBtnAsset">USDT</span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Widget -->
+    <div class="chat-bubble" id="chatBubble" onclick="toggleChat()">
+        <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+    </div>
+    <div class="chat-widget" id="chatWidget">
+        <div class="chat-widget-header">
+            <h4>Чат поддержки</h4>
+            <button class="close-chat" onclick="toggleChat()">✕</button>
+        </div>
+        <div class="chat-widget-msgs" id="chatWidgetMsgs">
+            <div class="chat-widget-start" id="chatWidgetStart">
+                <p>Здравствуйте! Задайте ваш вопрос, и мы ответим в ближайшее время.</p>
+                <button onclick="startChat()">Начать чат</button>
+            </div>
+        </div>
+        <div class="chat-widget-input" id="chatWidgetInput" style="display:none;">
+            <input type="text" id="chatWidgetInputField" placeholder="Введите сообщение..." onkeydown="if(event.key==='Enter')sendWidgetMsg()">
+            <button onclick="sendWidgetMsg()">Отправить</button>
+        </div>
+    </div>
+
+    <script>
+        const COMMISSION = 3;
+        let currenciesConfig = {};
+        let rateCache = {};
+        let currentBuyRate = null;
+        let currentCurrency = 'RUB';
+        let currentAsset = 'USDT';
+
+        function onAssetChange() {
+            const asset = document.getElementById('assetTypeSelect').value;
+            currentAsset = asset;
+            document.getElementById('amountLabel').textContent = 'Сумма ' + asset;
+            document.getElementById('submitBtn').textContent = 'Отправить ' + asset;
+            document.getElementById('modalAssetName').textContent = asset;
+            document.getElementById('modalBtnAsset').textContent = asset;
+            const cur = document.getElementById('currencySelect').value || 'RUB';
+            if (cur) updateRate(cur);
+            updateTradingViewSymbol(asset);
+        }
+
+        // Lightweight chart
+        let lwChart = null;
+        let candleSeries = null;
+
+        async function fetchCandles(symbol, interval) {
+            // For USDT show USDT/RUB line chart from CoinGecko
+            if (symbol === 'USDT_RUB') {
+                try {
+                    const r = await fetch('https://api.coingecko.com/api/v3/coins/tether/market_chart?vs_currency=rub&days=7');
+                    const d = await r.json();
+                    if (d.prices) return d.prices.map(p => ({ time: Math.floor(p[0] / 1000), value: p[1] }));
+                } catch (e) {}
+                return [];
+            }
+            const intervals = { '1': '1m', '5': '5m', '15': '15m', '30': '30m', '60': '1h', '240': '4h', '1D': '1d' };
+            const binanceInterval = intervals[interval] || '1h';
+            const limit = 200;
+            try {
+                const r = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${binanceInterval}&limit=${limit}`);
+                if (!r.ok) throw new Error('Binance klines failed');
+                const data = await r.json();
+                return data.map(k => ({ time: k[0] / 1000, open: parseFloat(k[1]), high: parseFloat(k[2]), low: parseFloat(k[3]), close: parseFloat(k[4]), volume: parseFloat(k[5]) }));
+            } catch (e) {
+                // Fallback Bybit
+                try {
+                    const bybitInterval = { '1': '1', '5': '5', '15': '15', '30': '30', '60': '60', '240': '240', '1D': 'D' }[interval] || '60';
+                    const r2 = await fetch(`https://api.bybit.com/v5/market/kline?category=spot&symbol=${symbol}&interval=${bybitInterval}&limit=${limit}`);
+                    const d2 = await r2.json();
+                    if (d2.retCode === 0) {
+                        return d2.result.list.reverse().map(k => ({ time: parseInt(k[0]) / 1000, open: parseFloat(k[1]), high: parseFloat(k[2]), low: parseFloat(k[3]), close: parseFloat(k[4]), volume: parseFloat(k[5]) }));
+                    }
+                } catch (e2) {}
+                return [];
+            }
+        }
+
+        let lineSeries = null;
+
+        function createChartSeries(asset) {
+            const isUsdt = asset === 'USDT';
+            if (isUsdt) {
+                candleSeries = null;
+                lineSeries = lwChart.addAreaSeries({ lineColor: '#22c55e', topColor: 'rgba(34,197,94,0.3)', bottomColor: 'rgba(34,197,94,0)', lineWidth: 2 });
+            } else {
+                lineSeries = null;
+                candleSeries = lwChart.addCandlestickSeries({
+                    upColor: '#22c55e', downColor: '#ef4444',
+                    borderDownColor: '#ef4444', borderUpColor: '#22c55e',
+                    wickDownColor: '#ef4444', wickUpColor: '#22c55e',
+                });
+            }
+        }
+
+        function initTradingView() {
+            const container = document.getElementById('tradingviewChart');
+            if (!container) return;
+            container.innerHTML = '';
+            const theme = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+            const isLight = theme === 'light';
+            const w = container.clientWidth || Math.min(600, window.innerWidth - 500);
+            lwChart = LightweightCharts.createChart(container, {
+                width: w,
+                height: 420,
+                layout: {
+                    background: { type: 'solid', color: isLight ? '#fff' : '#1a1a1a' },
+                    textColor: isLight ? '#333' : '#888',
+                },
+                grid: {
+                    vertLines: { color: isLight ? '#e5e7eb' : '#222' },
+                    horzLines: { color: isLight ? '#e5e7eb' : '#222' },
+                },
+                timeScale: { borderColor: isLight ? '#d0d0d0' : '#333', timeVisible: true },
+                rightPriceScale: { borderColor: isLight ? '#d0d0d0' : '#333' },
+                crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+            });
+            createChartSeries(document.getElementById('assetTypeSelect').value);
+            lwChart.timeScale().fitContent();
+            loadChartData();
+            window.addEventListener('resize', () => {
+                if (lwChart) lwChart.resize(container.clientWidth, 420);
+            });
+        }
+
+        function loadChartData() {
+            const asset = document.getElementById('assetTypeSelect').value;
+            const symbol = getTradingViewSymbol(asset);
+            fetchCandles(symbol, '60').then(candles => {
+                if (candles.length === 0) return;
+                if (asset === 'USDT') {
+                    if (lineSeries) lineSeries.setData(candles);
+                } else {
+                    if (candleSeries) candleSeries.setData(candles);
+                }
+                if (lwChart) lwChart.timeScale().fitContent();
+            });
+            // Fetch current price
+            const priceUrl = asset === 'USDT' ? '/api/rate?currency=USD&asset=USDT' : '/api/price?asset=' + asset;
+            fetch(priceUrl)
+                .then(r => r.json())
+                .then(d => {
+                    const price = asset === 'USDT' ? d.rate : d.price;
+                    if (price) {
+                        const prefix = asset === 'USDT' ? '₽' : '$';
+                        document.getElementById('chartPrice').textContent = prefix + parseFloat(price).toFixed(2);
+                    }
+                })
+                .catch(() => {});
+        }
+
+        function computeRSI(candles, period) {
+            if (candles.length < period + 1) return [];
+            const gains = [], losses = [];
+            for (let i = 1; i < candles.length; i++) {
+                const diff = candles[i].close - candles[i-1].close;
+                gains.push(diff > 0 ? diff : 0);
+                losses.push(diff < 0 ? -diff : 0);
+            }
+            const results = [];
+            let avgGain = gains.slice(0, period).reduce((a, b) => a + b, 0) / period;
+            let avgLoss = losses.slice(0, period).reduce((a, b) => a + b, 0) / period;
+            for (let i = period; i < gains.length; i++) {
+                avgGain = (avgGain * (period - 1) + gains[i]) / period;
+                avgLoss = (avgLoss * (period - 1) + losses[i]) / period;
+                const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+                const rsi = 100 - 100 / (1 + rs);
+                results.push({ time: candles[i + 1].time, value: rsi });
+            }
+            return results;
+        }
+
+        function getTradingViewSymbol(asset) {
+            if (asset === 'USDT') return 'USDT_RUB';
+            const map = { 'SOL': 'SOLUSDT', 'ETH': 'ETHUSDT', 'ARB': 'ARBUSDT', 'BNB': 'BNBUSDT' };
+            return map[asset] || 'SOLUSDT';
+        }
+
+        function updateTradingViewSymbol(asset) {
+            const label = document.getElementById('chartLabel');
+            const symbol = getTradingViewSymbol(asset);
+            const displayName = asset === 'USDT' ? 'USDT/RUB · CoinGecko' : asset + '/USDT · Binance';
+            label.textContent = displayName;
+            // Recreate series if switching between line (USDT) and candlestick (others)
+            if (lwChart) {
+                const needRecreate = (asset === 'USDT' && candleSeries) || (asset !== 'USDT' && lineSeries);
+                if (needRecreate) {
+                    lwChart.removeSeries(candleSeries || lineSeries);
+                    candleSeries = null;
+                    lineSeries = null;
+                    createChartSeries(asset);
+                }
+            }
+            loadChartData();
+        }
+
+        const BANK_FIELD_TYPES = {
+            'RUB': {
+                'Сбербанк': { label: 'Номер телефона', placeholder: '+7 999 123 45 67', maxLen: 16, fmt: 'phone', prefix: '+7 ' },
+                'Тинькофф': { label: 'Номер телефона или карты', placeholder: '+7 999 123 45 67', maxLen: 19, fmt: 'phone_card', prefix: '+7 ' },
+                'Альфа-Банк': { label: 'Номер карты', placeholder: '0000 0000 0000 0000', maxLen: 19, fmt: 'card' },
+                'ВТБ': { label: 'Номер телефона или карты', placeholder: '+7 999 123 45 67', maxLen: 19, fmt: 'phone_card', prefix: '+7 ' },
+                'Райффайзен': { label: 'Номер карты', placeholder: '0000 0000 0000 0000', maxLen: 19, fmt: 'card' }
+            },
+            'USD': { '*': { label: 'Номер счёта', placeholder: '0000000000', maxLen: 20, fmt: 'account' } },
+            'EUR': { '*': { label: 'IBAN', placeholder: '00000000000000000000', maxLen: 22, fmt: 'account' } },
+            'GBP': { '*': { label: 'Номер счёта', placeholder: '00000000', maxLen: 20, fmt: 'account' } },
+            'KZT': {
+                'Kaspi Bank': { label: 'Номер телефона', placeholder: '+7 700 123 45 67', maxLen: 16, fmt: 'phone', prefix: '+7 ' },
+                '*': { label: 'Номер счёта', placeholder: '0000000000', maxLen: 20, fmt: 'account' }
+            }
+        };
+
+        function getFieldConfig(currency, bank) {
+            const cc = BANK_FIELD_TYPES[currency];
+            if (!cc) return { label: 'Реквизиты', placeholder: '0000000000', maxLen: 20, fmt: 'account' };
+            if (cc[bank]) return cc[bank];
+            if (cc['*']) return cc['*'];
+            return { label: 'Реквизиты', placeholder: '0000000000', maxLen: 20, fmt: 'account' };
+        }
+
+        function onAccountInput(el) {
+            const cur = document.getElementById('currencySelect').value;
+            const bank = document.getElementById('bankSelect').value;
+            const cfg = getFieldConfig(cur, bank);
+            const fmt = cfg.fmt || 'account';
+            const prefix = cfg.prefix || '';
+            const raw = el.value;
+            const digits = raw.replace(/\D/g, '');
+            const cursor = el.selectionStart;
+
+            if (fmt === 'phone' || fmt === 'phone_card') {
+                const prefixDigits = prefix.replace(/\D/g, '');
+                let num = digits;
+                if (fmt === 'phone_card' && digits.length >= prefixDigits.length && digits.substring(0, prefixDigits.length) !== prefixDigits) {
+                    num = prefixDigits + digits;
+                }
+                if (num.length < prefixDigits.length) num = prefixDigits;
+                const body = num.substring(prefixDigits.length, 16);
+                let formatted = prefix;
+                if (body.length > 0) formatted += body.substring(0, 3);
+                if (body.length > 3) formatted += ' ' + body.substring(3, 6);
+                if (body.length > 6) formatted += ' ' + body.substring(6, 8);
+                if (body.length > 8) formatted += ' ' + body.substring(8, 10);
+                el.value = formatted;
+            } else if (fmt === 'card') {
+                const cardDigits = digits.substring(0, 16);
+                const parts = [];
+                for (let i = 0; i < cardDigits.length; i += 4) parts.push(cardDigits.substring(i, i + 4));
+                el.value = parts.join(' ');
+            } else {
+                el.value = digits;
+            }
+        }
+
+        function getRawAccountValue() {
+            return document.getElementById('accountInput').value.replace(/\s+/g, '');
+        }
+
+        async function fetchCurrencies() {
+            try {
+                const response = await fetch('/api/currencies');
+                const data = await response.json();
+                currenciesConfig = data.banks;
+                const currencySelect = document.getElementById('currencySelect');
+                data.currencies.forEach(c => {
+                    const o = document.createElement('option');
+                    o.value = c; o.textContent = c;
+                    currencySelect.appendChild(o);
+                });
+            } catch (error) { console.error(error); }
+        }
+
+        document.getElementById('currencySelect').addEventListener('change', function() {
+            const bankSelect = document.getElementById('bankSelect');
+            const currency = this.value;
+            currentCurrency = currency;
+            if (currency && currenciesConfig[currency]) {
+                bankSelect.disabled = false;
+                bankSelect.innerHTML = '<option value="">Выберите банк</option>';
+                currenciesConfig[currency].forEach(b => {
+                    const o = document.createElement('option');
+                    o.value = b; o.textContent = b;
+                    bankSelect.appendChild(o);
+                });
+                updateRate(currency);
+                updateAccountField(currency, '');
+            } else {
+                bankSelect.disabled = true;
+                bankSelect.innerHTML = '<option value="">Сначала выберите валюту</option>';
+            }
+        });
+
+        document.getElementById('bankSelect').addEventListener('change', function() {
+            const currency = document.getElementById('currencySelect').value;
+            updateAccountField(currency, this.value);
+        });
+
+        function updateAccountField(currency, bank) {
+            const cfg = getFieldConfig(currency, bank);
+            document.getElementById('accountLabel').textContent = cfg.label;
+            const input = document.getElementById('accountInput');
+            input.placeholder = cfg.placeholder;
+            input.maxLength = cfg.maxLen;
+            if (cfg.fmt === 'phone' || cfg.fmt === 'phone_card') {
+                if (!input.value || input.value.replace(/\D/g,'').length === 0) {
+                    input.value = cfg.prefix || '';
+                }
+            } else {
+                input.value = '';
+            }
+        }
+
+        function setRate(asset, buyRate, marketRate, currency) {
+            rateCache[asset] = { buyRate, marketRate, currency };
+            if (asset === document.getElementById('assetTypeSelect').value) {
+                currentBuyRate = buyRate;
+                document.getElementById('usdtRate').textContent = '1 ' + asset + ' = ' + marketRate.toFixed(2) + ' ' + getCurrencySymbol(currency);
+                updateCalculator();
+            }
+        }
+
+        async function updateRate(currency) {
+            try {
+                const asset = document.getElementById('assetTypeSelect').value;
+                currentAsset = asset;
+                currentBuyRate = null;
+                document.getElementById('usdtRate').textContent = 'Загрузка...';
+                const response = await fetch(`/api/rate?currency=${currency}&asset=${asset}`);
+                const data = await response.json();
+                if (data.buy_rate) {
+                    const buyRate = parseFloat(data.buy_rate);
+                    const marketRate = data.rate ? parseFloat(data.rate) : buyRate / (1 - COMMISSION / 100);
+                    setRate(asset, buyRate, marketRate, currency);
+                } else if (data.rate) {
+                    const buyRate = parseFloat(data.rate) * (1 - COMMISSION / 100);
+                    setRate(asset, buyRate, parseFloat(data.rate), currency);
+                } else {
+                    document.getElementById('usdtRate').textContent = 'Курс не найден';
+                }
+            } catch (error) {
+                document.getElementById('usdtRate').textContent = 'Ошибка загрузки';
+            }
+        }
+
+        function getCurrencySymbol(currency) {
+            const s = {'RUB':'₽','USD':'$','EUR':'€','GBP':'£','KZT':'₸'};
+            return s[currency] || '';
+        }
+
+        function updateCalculator() {
+            const asset = document.getElementById('assetTypeSelect').value;
+            currentAsset = asset;
+            const a = parseFloat(document.getElementById('amountUsdt').value) || 0;
+            const cached = rateCache[asset];
+            const rate = cached ? cached.buyRate : currentBuyRate;
+            if (a > 0 && rate) {
+                const r = (a * rate).toFixed(2);
+                const raw = rate / (1 - COMMISSION / 100) * a;
+                const com = (raw * COMMISSION / 100).toFixed(2);
+                document.getElementById('calcSend').textContent = a.toFixed(2) + ' ' + asset;
+                document.getElementById('calcReceive').textContent = r + ' ' + getCurrencySymbol(currentCurrency);
+                document.getElementById('calcCommission').textContent = com + ' ' + getCurrencySymbol(currentCurrency) + ' (' + COMMISSION + '%)';
+            } else {
+                document.getElementById('calcSend').textContent = '0 ' + asset;
+                document.getElementById('calcReceive').textContent = '0 ' + getCurrencySymbol(currentCurrency);
+                document.getElementById('calcCommission').textContent = '0 (0%)';
+            }
+        }
+
+        document.getElementById('amountUsdt').addEventListener('input', updateCalculator);
+        document.getElementById('paymentForm').addEventListener('submit', async (e) => { e.preventDefault(); document.getElementById('warningModal').classList.add('show'); });
+
+        function closeModal() {
+            document.getElementById('warningModal').classList.remove('show');
+            const btn = document.getElementById('submitBtn');
+            const asset = document.getElementById('assetTypeSelect').value;
+            btn.disabled = false; btn.textContent = 'Отправить ' + asset;
+        }
+
+        let orderTimerInterval = null;
+        let orderTimeRemaining = 900;
+
+        function startOrderTimer() {
+            const timerElement = document.getElementById('orderTimer');
+            const timerValue = document.getElementById('timerValue');
+            timerElement.style.display = 'block';
+            orderTimeRemaining = 900;
+            orderTimerInterval = setInterval(() => {
+                orderTimeRemaining--;
+                const m = Math.floor(orderTimeRemaining / 60);
+                const s = orderTimeRemaining % 60;
+                timerValue.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+                if (orderTimeRemaining <= 60) timerElement.classList.add('urgent');
+                if (orderTimeRemaining <= 0) {
+                    clearInterval(orderTimerInterval);
+                    timerElement.classList.remove('urgent');
+                    timerValue.textContent = '00:00';
+                    alert('Время истекло! Заказ отменён.');
+                    location.reload();
+                }
+            }, 1000);
+        }
+
+        function copyAddress() { navigator.clipboard.writeText(document.getElementById('resAddress').textContent); }
+
+        // --- Phantom wallet ---
+        let phantomPublicKey = null;
+        let phantomSolBalance = null;
+        let phantomUsdtBalance = null;
+        let balanceAsset = 'SOL';
+
+        // All balances storage
+        let allBalances = {};
+
+        function updateAllBalances() {
+            const b = {};
+            if (phantomSolBalance !== null) b['SOL'] = { val: phantomSolBalance, unit: 'SOL', icon: 'https://img.phantom.app/PhantomIcon.svg' };
+            if (phantomUsdtBalance !== null) b['USDT'] = { val: phantomUsdtBalance, unit: 'USDT', icon: 'https://cryptologos.cc/logos/tether-usdt-logo.png' };
+            if (metamaskEthBalance !== null) b['ETH'] = { val: metamaskEthBalance, unit: 'ETH', icon: 'https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg' };
+            if (metamaskArbBalance !== null) b['ARB'] = { val: metamaskArbBalance, unit: 'ARB', icon: 'https://cryptologos.cc/logos/arbitrum-arb-logo.png' };
+            if (metamaskBnbBalance !== null) b['BNB'] = { val: metamaskBnbBalance, unit: 'BNB', icon: 'https://cryptologos.cc/logos/bnb-bnb-logo.png' };
+            allBalances = b;
+            showPrimaryBalance();
+        }
+
+        function showPrimaryBalance() {
+            const el = document.getElementById('walletHeaderBalance');
+            const keys = Object.keys(allBalances);
+            if (keys.length === 0) { el.textContent = '—'; return; }
+            const first = allBalances[keys[0]];
+            el.textContent = first.val + ' ' + first.unit;
+        }
+
+        function populateBalanceDropdown() {
+            const dd = document.getElementById('walletBalanceDropdown');
+            dd.innerHTML = '';
+            const keys = Object.keys(allBalances);
+            if (keys.length === 0) {
+                dd.innerHTML = '<div style="padding:8px 10px;font-size:12px;color:var(--text-dim)">Нет данных</div>';
+                return;
+            }
+            keys.forEach(k => {
+                const b = allBalances[k];
+                const row = document.createElement('div');
+                row.className = 'wallet-balance-row';
+                row.innerHTML = '<img src="' + b.icon + '" class="bal-icon" alt="' + k + '" onerror="this.style.display=\'none\'">' +
+                    '<span class="bal-name">' + k + '</span>' +
+                    '<span class="bal-value">' + b.val + ' ' + b.unit + '</span>';
+                row.onclick = function() {
+                    document.getElementById('walletHeaderBalance').textContent = b.val + ' ' + b.unit;
+                    document.getElementById('walletBalanceDropdown').classList.remove('open');
+                };
+                dd.appendChild(row);
+            });
+        }
+
+        function toggleBalanceDropdown() {
+            const dd = document.getElementById('walletBalanceDropdown');
+            const isOpen = dd.classList.contains('open');
+            // Close all other dropdowns
+            document.querySelectorAll('.wallet-networks-dropdown.open, .wallet-balance-dropdown.open').forEach(el => el.classList.remove('open'));
+            if (!isOpen) {
+                populateBalanceDropdown();
+                dd.classList.add('open');
+            }
+        }
+        const USDT_MINT = 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB';
+
+        function getPhantomProvider() {
+            if ('phantom' in window) return window.phantom?.solana;
+            if ('solana' in window) return window.solana;
+            return null;
+        }
+
+        function toggleWalletPanel() {
+            const panel = document.getElementById('walletConnectPanel');
+            panel.classList.toggle('open');
+            document.getElementById('walletPanelError').classList.remove('show');
+        }
+
+        async function connectPhantom() {
+            const panel = document.getElementById('walletConnectPanel');
+            const errEl = document.getElementById('walletPanelError');
+            const opt = panel.querySelector('.wallet-option');
+            errEl.classList.remove('show');
+            opt.style.opacity = '0.5';
+            opt.style.pointerEvents = 'none';
+
+            try {
+                const provider = getPhantomProvider();
+                if (!provider) {
+                    errEl.textContent = 'Установите расширение Phantom';
+                    errEl.classList.add('show');
+                    opt.style.opacity = '1';
+                    opt.style.pointerEvents = 'auto';
+                    return;
+                }
+                const resp = await provider.connect();
+                phantomPublicKey = resp.publicKey.toString();
+                panel.classList.remove('open');
+                document.getElementById('walletConnectBtn').style.display = 'none';
+                document.getElementById('walletHeaderInfo').style.display = 'flex';
+                const nick = phantomPublicKey.slice(0, 4) + '..' + phantomPublicKey.slice(-4);
+                document.getElementById('walletNickname').textContent = nick;
+                document.getElementById('walletHeaderBalance').textContent = 'загрузка...';
+                balanceAsset = 'SOL';
+                await Promise.all([updateSolBalance(), updateUsdtBalance()]);
+                showBalance();
+                updateNetworkStatus('sol', true);
+                document.getElementById('netBalSol').textContent = (phantomSolBalance || '—') + ' SOL';
+                updateChatWalletInfo();
+            } catch (e) {
+                errEl.textContent = e.message || 'Ошибка подключения';
+                errEl.classList.add('show');
+            }
+            opt.style.opacity = '1';
+            opt.style.pointerEvents = 'auto';
+        }
+
+        // --- MetaMask wallet ---
+        let metamaskAccount = null;
+        let metamaskProvider = null;
+        let metamaskEthBalance = null;
+        let metamaskArbBalance = null;
+        let metamaskBnbBalance = null;
+
+        async function connectMetaMask() {
+            const panel = document.getElementById('walletConnectPanel');
+            const errEl = document.getElementById('walletPanelError');
+            errEl.classList.remove('show');
+
+            try {
+                if (typeof window.ethereum === 'undefined') {
+                    errEl.textContent = 'Установите расширение MetaMask';
+                    errEl.classList.add('show');
+                    return;
+                }
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                metamaskAccount = accounts[0];
+                metamaskProvider = new ethers.BrowserProvider(window.ethereum);
+
+                panel.classList.remove('open');
+                document.getElementById('walletConnectBtn').style.display = 'none';
+                document.getElementById('walletHeaderInfo').style.display = 'flex';
+                const nick = metamaskAccount.slice(0, 6) + '...' + metamaskAccount.slice(-4);
+                document.getElementById('walletNickname').textContent = nick;
+                document.getElementById('walletHeaderBalance').textContent = 'загрузка...';
+                await Promise.all([updateEthBalance(), updateArbBalance(), updateBnbBalance()]);
+                updateAllBalances();
+                updateNetworkStatus('eth', true);
+                updateNetworkStatus('arb', true);
+                updateNetworkStatus('bnb', true);
+
+                window.ethereum.on('accountsChanged', async (accts) => {
+                    if (accts.length === 0) {
+                        disconnectWallet();
+                    } else {
+                        metamaskAccount = accts[0];
+                        const nick = metamaskAccount.slice(0, 6) + '...' + metamaskAccount.slice(-4);
+                        document.getElementById('walletNickname').textContent = nick;
+                        await Promise.all([updateEthBalance(), updateArbBalance(), updateBnbBalance()]);
+                        updateAllBalances();
+                    }
+                });
+            } catch (e) {
+                errEl.textContent = e.message || 'Ошибка подключения MetaMask';
+                errEl.classList.add('show');
+            }
+        }
+
+        async function updateEthBalance() {
+            try {
+                if (!metamaskProvider || !metamaskAccount) return;
+                const balance = await metamaskProvider.getBalance(metamaskAccount);
+                metamaskEthBalance = parseFloat(ethers.formatEther(balance)).toFixed(4);
+                document.getElementById('netBalEth').textContent = metamaskEthBalance + ' ETH';
+            } catch (e) {
+                console.error('ETH balance error:', e);
+                metamaskEthBalance = null;
+            }
+        }
+
+        function showEthBalance() {
+            const el = document.getElementById('walletHeaderBalance');
+            if (metamaskEthBalance) {
+                el.textContent = metamaskEthBalance + ' ETH';
+            }
+        }
+
+        async function updateArbBalance() {
+            try {
+                if (!metamaskAccount) return;
+                const arbProvider = new ethers.JsonRpcProvider('https://arb1.arbitrum.io/rpc');
+                const balance = await arbProvider.getBalance(metamaskAccount);
+                metamaskArbBalance = parseFloat(ethers.formatEther(balance)).toFixed(4);
+                document.getElementById('netBalArb').textContent = metamaskArbBalance + ' ARB';
+            } catch (e) {
+                console.error('ARB balance error:', e);
+                metamaskArbBalance = null;
+            }
+        }
+
+        async function updateBnbBalance() {
+            try {
+                if (!metamaskAccount) return;
+                const bnbProvider = new ethers.JsonRpcProvider('https://bsc-dataseed.binance.org/');
+                const balance = await bnbProvider.getBalance(metamaskAccount);
+                metamaskBnbBalance = parseFloat(ethers.formatEther(balance)).toFixed(4);
+                document.getElementById('netBalBnb').textContent = metamaskBnbBalance + ' BNB';
+            } catch (e) {
+                console.error('BNB balance error:', e);
+                metamaskBnbBalance = null;
+            }
+        }
+
+        async function disconnectWallet() {
+            // Disconnect Phantom
+            try {
+                const provider = getPhantomProvider();
+                if (provider) await provider.disconnect();
+            } catch (e) {}
+            phantomPublicKey = null;
+            phantomSolBalance = null;
+            phantomUsdtBalance = null;
+
+            // Disconnect MetaMask
+            metamaskAccount = null;
+            metamaskProvider = null;
+            metamaskEthBalance = null;
+            metamaskArbBalance = null;
+            metamaskBnbBalance = null;
+
+            allBalances = {};
+            document.getElementById('walletConnectBtn').style.display = 'flex';
+            document.getElementById('walletHeaderInfo').style.display = 'none';
+            document.getElementById('walletNetworks').style.display = 'none';
+            document.getElementById('walletNickname').textContent = '';
+            document.getElementById('walletHeaderBalance').textContent = '—';
+            document.getElementById('payWithPhantom').style.display = 'none';
+            // Reset network statuses
+            document.querySelectorAll('.net-status').forEach(el => { el.textContent = '✕'; el.classList.add('disconnected'); });
+            document.querySelectorAll('.net-balance').forEach(el => { el.textContent = '—'; });
+            clearChatWalletInfo();
+        }
+
+        // Network dropdown
+        function showNetworkDropdown() {
+            const d = document.getElementById('walletNetworksDropdown');
+            d.classList.toggle('open');
+        }
+        function updateNetworkStatus(net, connected) {
+            const statusEl = document.getElementById('netStatus' + net.charAt(0).toUpperCase() + net.slice(1));
+            const balEl = document.getElementById('netBal' + net.charAt(0).toUpperCase() + net.slice(1));
+            if (connected) {
+                statusEl.textContent = '✓';
+                statusEl.classList.remove('disconnected');
+                document.getElementById('walletNetworks').style.display = 'flex';
+            } else {
+                statusEl.textContent = '✕';
+                statusEl.classList.add('disconnected');
+                balEl.textContent = '—';
+            }
+        }
+
+        document.addEventListener('click', function(e) {
+            const panel = document.getElementById('walletConnectPanel');
+            const btn = document.getElementById('walletConnectBtn');
+            const netDropdown = document.getElementById('walletNetworksDropdown');
+            const netToggle = document.getElementById('networksToggleIcon');
+            const balDropdown = document.getElementById('walletBalanceDropdown');
+            const balHeader = document.getElementById('walletHeaderBalance');
+            if (panel.classList.contains('open') && !panel.contains(e.target) && !btn.contains(e.target)) {
+                panel.classList.remove('open');
+            }
+            if (netDropdown.classList.contains('open') && !netDropdown.contains(e.target) && !netToggle.contains(e.target)) {
+                netDropdown.classList.remove('open');
+            }
+            if (balDropdown.classList.contains('open') && !balDropdown.contains(e.target) && !balHeader.contains(e.target)) {
+                balDropdown.classList.remove('open');
+            }
+        });
+
+        async function updateSolBalance() {
+            try {
+                if (!phantomPublicKey) return;
+                const { Connection, PublicKey, clusterApiUrl } = solanaWeb3;
+                const connection = new Connection(clusterApiUrl('mainnet-beta'));
+                const balance = await connection.getBalance(new PublicKey(phantomPublicKey));
+                phantomSolBalance = (balance / 1e9).toFixed(3);
+            } catch (e) {
+                phantomSolBalance = null;
+            }
+        }
+
+        async function updateUsdtBalance() {
+            try {
+                if (!phantomPublicKey) return;
+                const { Connection, PublicKey, clusterApiUrl } = solanaWeb3;
+                const connection = new Connection(clusterApiUrl('mainnet-beta'));
+                const ownerPubkey = new PublicKey(phantomPublicKey);
+                const accounts = await connection.getParsedTokenAccountsByOwner(ownerPubkey, { mint: new PublicKey(USDT_MINT) });
+                if (accounts.value.length > 0) {
+                    const info = accounts.value[0].account.data.parsed.info;
+                    phantomUsdtBalance = Number(info.tokenAmount.uiAmount).toFixed(2);
+                } else {
+                    phantomUsdtBalance = '0.00';
+                }
+            } catch (e) {
+                console.error('USDT balance error:', e);
+                phantomUsdtBalance = null;
+            }
+        }
+
+        function showBalance() {
+            updateAllBalances();
+        }
+
+        // toggleBalanceAsset removed — replaced by toggleBalanceDropdown/populateBalanceDropdown
+
+        function updateChatWalletInfo() {
+            if (!phantomPublicKey || !widgetWs || widgetWs.readyState !== WebSocket.OPEN) return;
+            const nick = phantomPublicKey.slice(0, 4) + '..' + phantomPublicKey.slice(-4);
+            let info = '🦊 Кошелёк: ' + nick;
+            const b = allBalances;
+            Object.keys(b).forEach(k => {
+                info += '\n    ' + k + ': ' + b[k].val;
+            });
+            widgetWs.send(JSON.stringify({message: info}));
+            addWidgetMsg('client', info);
+        }
+
+        function clearChatWalletInfo() {
+            if (!widgetWs || widgetWs.readyState !== WebSocket.OPEN) return;
+            widgetWs.send(JSON.stringify({message: '🦊 Кошелёк отключён'}));
+            addWidgetMsg('client', '🦊 Кошелёк отключён');
+        }
+
+        // --- Payment via Phantom ---
+        let pendingOrderData = null;
+
+        async function payWithPhantom() {
+            const btn = document.getElementById('payWithPhantom');
+            btn.disabled = true;
+            btn.textContent = 'Отправка...';
+
+            try {
+                const amount = parseFloat(document.getElementById('amountUsdt').value);
+                if (!amount || amount <= 0) { alert('Укажите сумму'); return; }
+
+                const provider = getPhantomProvider();
+                if (!provider) { alert('Phantom не найден'); return; }
+
+                const { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL, clusterApiUrl } = solanaWeb3;
+                const connection = new Connection(clusterApiUrl('mainnet-beta'));
+
+                const balance = await connection.getBalance(new PublicKey(phantomPublicKey));
+                const lamports = amount * LAMPORTS_PER_SOL;
+                if (balance < lamports) {
+                    alert(`Недостаточно SOL. Баланс: ${(balance/1e9).toFixed(3)} SOL`);
+                    btn.disabled = false;
+                    btn.textContent = '⚡ Оплатить SOL через Phantom';
+                    return;
+                }
+
+                const { blockhash } = await connection.getLatestBlockhash();
+                const transaction = new Transaction().add(
+                    SystemProgram.transfer({
+                        fromPubkey: new PublicKey(phantomPublicKey),
+                        toPubkey: new PublicKey(pendingOrderData.deposit_address),
+                        lamports
+                    })
+                );
+                transaction.recentBlockhash = blockhash;
+                transaction.feePayer = new PublicKey(phantomPublicKey);
+
+                const signed = await provider.signTransaction(transaction);
+                const signature = await connection.sendRawTransaction(signed.serialize());
+
+                btn.textContent = 'Ожидание подтверждения...';
+                await connection.confirmTransaction(signature, 'confirmed');
+
+                btn.textContent = '✅ Отправлено! Проверяем...';
+                document.getElementById('resStatus').textContent = 'paid';
+                alert('SOL успешно отправлен! Заказ ожидает подтверждения.');
+            } catch (e) {
+                alert('Ошибка оплаты: ' + (e.message || e));
+            }
+            btn.disabled = false;
+            btn.textContent = '⚡ Оплатить SOL через Phantom';
+        }
+
+        // Store deposit address in pendingOrderData after order creation
+        confirmOrder = async function() {
+            document.getElementById('warningModal').classList.remove('show');
+            const btn = document.getElementById('submitBtn');
+            const form = document.getElementById('paymentForm');
+            const formData = new FormData(form);
+            btn.disabled = true; btn.textContent = 'Создание заказа...';
+            try {
+                const asset = document.getElementById('assetTypeSelect').value;
+                const payload = {
+                    amount_usdt: parseFloat(formData.get('amount_usdt')),
+                    currency: formData.get('currency'),
+                    bank: formData.get('bank'),
+                    phone: getRawAccountValue(),
+                    order_type: 'buy',
+                    asset_type: asset,
+                    wallet: phantomPublicKey || null
+                };
+                const response = await fetch('/api/orders', {
+                    method: 'POST', headers: { 'Content-Type':'application/json','Accept':'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const text = await response.text();
+                if (!response.ok) { const a = document.getElementById('assetTypeSelect').value; alert('Ошибка: ' + text); btn.disabled = false; btn.textContent = 'Отправить ' + a; return; }
+                const data = JSON.parse(text);
+                if (response.ok) {
+                    const asset = data.asset_type || document.getElementById('assetTypeSelect').value;
+                    pendingOrderData = {
+                        order_id: data.order_id,
+                        deposit_address: data.deposit_address,
+                        amount_usdt: data.amount_usdt
+                    };
+                    document.getElementById('resOrderId').textContent = data.order_id;
+                    document.getElementById('resAmount').textContent = data.amount_usdt;
+                    document.getElementById('resAmountAsset').textContent = asset;
+                    document.getElementById('resAmountRub').textContent = (data.amount_rub || '—') + ' ' + getCurrencySymbol(currentCurrency);
+                    document.getElementById('resCommission').textContent = (data.commission_amount || 0).toFixed(2) + ' ' + getCurrencySymbol(currentCurrency) + ' (' + (data.commission_percent || COMMISSION) + '%)';
+                    document.getElementById('resAddress').textContent = data.deposit_address;
+                    const statusMap = {pending:'Ожидает оплаты',paid:'Оплачено',canceled:'Отменён'};
+                    document.getElementById('resStatus').textContent = statusMap[data.status] || data.status;
+                    document.getElementById('resultHeader').textContent = 'Отправьте ' + asset + ' для получения валюты';
+                    document.getElementById('resultAddrLabel').textContent = asset === 'SOL' ? 'Адрес для оплаты (Solana):' : asset === 'USDT' ? 'Адрес для оплаты (TRC20):' : 'Адрес для оплаты (' + asset + '):';
+                    document.getElementById('result').classList.add('show');
+                    document.getElementById('result').classList.remove('error');
+                    form.style.display = 'none';
+                    document.getElementById('qrCode').innerHTML = '';
+                    new QRCode(document.getElementById('qrCode'), { text: data.deposit_address, width: 150, height: 150 });
+                    startOrderTimer();
+
+                    if (asset === 'SOL' && phantomPublicKey) {
+                        document.getElementById('payWithPhantom').style.display = 'block';
+                    }
+                } else { alert('Ошибка: ' + (data.detail || 'Unknown error')); }
+            } catch (error) { alert('Ошибка: ' + error.message); }
+            finally { const a = document.getElementById('assetTypeSelect').value; btn.disabled = false; btn.textContent = 'Отправить ' + a; }
+        };
+
+        // Re-enter existing order
+        async function loadOrder(orderId) {
+            try {
+                const resp = await fetch('/api/orders/' + orderId);
+                if (!resp.ok) { alert('Заказ не найден'); return; }
+                const data = await resp.json();
+                const asset = data.asset_type || 'USDT';
+                pendingOrderData = {
+                    order_id: data.order_id,
+                    deposit_address: data.deposit_address,
+                    amount_usdt: data.amount_usdt,
+                    status: data.status
+                };
+                document.getElementById('resOrderId').textContent = data.order_id;
+                document.getElementById('resAmount').textContent = data.amount_usdt;
+                document.getElementById('resAmountAsset').textContent = asset;
+                document.getElementById('resAmountRub').textContent = (data.amount_rub || '—') + ' ' + getCurrencySymbol(data.currency);
+                document.getElementById('resAddress').textContent = data.deposit_address;
+                const statusMap = {pending:'Ожидает оплаты',paid:'Оплачено',canceled:'Отменён'};
+                document.getElementById('resStatus').textContent = statusMap[data.status] || data.status;
+                document.getElementById('resultHeader').textContent = 'Отправьте ' + asset + ' для получения валюты';
+                document.getElementById('resultAddrLabel').textContent = asset === 'SOL' ? 'Адрес для оплаты (Solana):' : asset === 'USDT' ? 'Адрес для оплаты (TRC20):' : 'Адрес для оплаты (' + asset + '):';
+                document.getElementById('result').classList.add('show');
+                document.getElementById('result').classList.remove('error');
+                document.getElementById('paymentForm').style.display = 'none';
+                document.getElementById('qrCode').innerHTML = '';
+                new QRCode(document.getElementById('qrCode'), { text: data.deposit_address, width: 150, height: 150 });
+                if (data.status === 'pending') startOrderTimer();
+                if (asset === 'SOL' && phantomPublicKey && data.status === 'pending') {
+                    document.getElementById('payWithPhantom').style.display = 'block';
+                }
+            } catch (e) { alert('Ошибка: ' + e.message); }
+        }
+
+        (function checkOrderParam() {
+            const params = new URLSearchParams(window.location.search);
+            const oid = params.get('order_id');
+            if (oid) loadOrder(oid);
+        })();
+
+        // --- Rate refresh ---
+        let rateCountdown = 60;
+
+        async function fetchRate() {
+            try {
+                const currency = document.getElementById('currencySelect').value || 'RUB';
+                const asset = document.getElementById('assetTypeSelect').value;
+                const response = await fetch(`/api/rate?currency=${currency}&asset=${asset}`);
+                const data = await response.json();
+                if (data.buy_rate) {
+                    const buyRate = parseFloat(data.buy_rate);
+                    const marketRate = data.rate ? parseFloat(data.rate) : buyRate / (1 - COMMISSION / 100);
+                    setRate(asset, buyRate, marketRate, currency);
+                    rateCountdown = 60;
+                } else if (data.rate) {
+                    const buyRate = parseFloat(data.rate) * (1 - COMMISSION / 100);
+                    setRate(asset, buyRate, parseFloat(data.rate), currency);
+                    rateCountdown = 60;
+                } else { document.getElementById('usdtRate').textContent = 'Курс не найден'; }
+            } catch (error) { document.getElementById('usdtRate').textContent = 'Ошибка загрузки'; }
+        }
+
+        function updateProgressBar() {
+            rateCountdown--;
+            document.getElementById('rateProgressBar').style.width = (rateCountdown / 60 * 100) + '%';
+            if (rateCountdown <= 0) fetchRate();
+        }
+
+        fetchCurrencies().then(() => {
+            document.getElementById('currencySelect').value = 'RUB';
+            document.getElementById('currencySelect').dispatchEvent(new Event('change'));
+        });
+        setTimeout(onAssetChange, 100);
+        setInterval(updateProgressBar, 1000);
+
+        // Init TradingView chart
+        setTimeout(initTradingView, 500);
+
+        // Chat widget
+        let widgetSessionId = null, widgetWs = null;
+
+        function toggleChat() {
+            const w = document.getElementById('chatWidget');
+            const b = document.getElementById('chatBubble');
+            const open = w.classList.toggle('open');
+            b.style.display = open ? 'none' : 'flex';
+            if (!open && widgetWs) { widgetWs.close(); widgetWs = null; }
+        }
+
+        async function startChat() {
+            document.getElementById('chatWidgetStart').innerHTML = '<p style="color:#888;">Подключение...</p>';
+            try {
+                const chatName = phantomPublicKey ? phantomPublicKey.slice(0,4)+'..'+phantomPublicKey.slice(-4) : 'Клиент';
+                const resp = await fetch('/api/chat/create', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({name:chatName,email:'',message:''}) });
+                const data = await resp.json();
+                widgetSessionId = data.session_id;
+                document.getElementById('chatWidgetMsgs').innerHTML = '';
+                document.getElementById('chatWidgetInput').style.display = 'flex';
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const host = window.location.host || 'localhost:8000';
+                widgetWs = new WebSocket(`${protocol}//${host}/ws/chat/${widgetSessionId}`);
+                widgetWs.onmessage = (e) => {
+                    const d = JSON.parse(e.data);
+                    if (d.type === 'message' && d.sender !== 'client') {
+                        addWidgetMsg(d.sender, d.message, d.created_at);
+                        playNotifySound();
+                    } else if (d.type === 'closed') { addWidgetMsg('admin', '⚠️ Чат закрыт'); document.getElementById('chatWidgetInput').style.display = 'none'; }
+                };
+                if (phantomPublicKey) {
+                    setTimeout(updateChatWalletInfo, 500);
+                }
+            } catch (e) { document.getElementById('chatWidgetStart').innerHTML = '<p style="color:#ef4444;">Ошибка подключения</p>'; }
+        }
+
+        function addWidgetMsg(sender, text, timeStr) {
+            const container = document.getElementById('chatWidgetMsgs');
+            const div = document.createElement('div');
+            div.className = 'chat-widget-msg ' + sender;
+            const time = timeStr ? new Date(timeStr).toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'}) : '';
+            div.innerHTML = text + (time ? '<span class="time">'+time+'</span>' : '');
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        let notifyAudioCtx = null;
+
+        function playNotifySound() {
+            try {
+                if (!notifyAudioCtx) {
+                    notifyAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (notifyAudioCtx.state === 'suspended') {
+                    notifyAudioCtx.resume();
+                }
+                const osc = notifyAudioCtx.createOscillator();
+                const gain = notifyAudioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(notifyAudioCtx.destination);
+                osc.frequency.value = 660;
+                osc.type = 'sine';
+                gain.gain.setValueAtTime(0.3, notifyAudioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, notifyAudioCtx.currentTime + 0.3);
+                osc.start(notifyAudioCtx.currentTime);
+                osc.stop(notifyAudioCtx.currentTime + 0.3);
+            } catch(e) {}
+        }
+
+        // Init AudioContext on first user click (autoplay policy)
+        document.addEventListener('click', function() {
+            if (!notifyAudioCtx) {
+                try { notifyAudioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+            } else if (notifyAudioCtx.state === 'suspended') {
+                notifyAudioCtx.resume();
+            }
+        }, { once: true });
+
+        function sendWidgetMsg() {
+            const input = document.getElementById('chatWidgetInputField');
+            const text = input.value.trim();
+            if (!text || !widgetWs || widgetWs.readyState !== WebSocket.OPEN) return;
+            widgetWs.send(JSON.stringify({message: text}));
+            addWidgetMsg('client', text);
+            input.value = '';
+        }
+
+        function updateChartTheme() {
+            if (!lwChart) return;
+            const isLight = document.documentElement.dataset.theme === 'light';
+            lwChart.applyOptions({
+                layout: {
+                    background: { type: 'solid', color: isLight ? '#fff' : '#1a1a1a' },
+                    textColor: isLight ? '#333' : '#888',
+                },
+                grid: {
+                    vertLines: { color: isLight ? '#e5e7eb' : '#222' },
+                    horzLines: { color: isLight ? '#e5e7eb' : '#222' },
+                },
+                timeScale: { borderColor: isLight ? '#d0d0d0' : '#333' },
+                rightPriceScale: { borderColor: isLight ? '#d0d0d0' : '#333' },
+            });
+        }
+
+        // Theme toggle
+        function toggleTheme() {
+            const html = document.documentElement;
+            const btn = document.getElementById('themeToggle');
+            const moon = btn.querySelector('.theme-moon');
+            const sun = btn.querySelector('.theme-sun');
+            if (html.dataset.theme === 'light') {
+                delete html.dataset.theme;
+                moon.style.display = '';
+                sun.style.display = 'none';
+                localStorage.setItem('theme', 'dark');
+            } else {
+                html.dataset.theme = 'light';
+                moon.style.display = 'none';
+                sun.style.display = '';
+                localStorage.setItem('theme', 'light');
+            }
+            updateChartTheme();
+        }
+        (function initTheme() {
+            const saved = localStorage.getItem('theme');
+            const btn = document.getElementById('themeToggle');
+            if (saved === 'light') {
+                document.documentElement.dataset.theme = 'light';
+                if (btn) {
+                    const moon = btn.querySelector('.theme-moon');
+                    const sun = btn.querySelector('.theme-sun');
+                    if (moon) moon.style.display = 'none';
+                    if (sun) sun.style.display = '';
+                }
+            }
+        })();
+
+        // Background animation (particle network)
+        (function initBgAnimation() {
+            const canvas = document.getElementById('bgCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            let w, h, particles = [];
+            const count = 80;
+            const maxDist = 150;
+
+            function resize() {
+                w = canvas.width = window.innerWidth;
+                h = canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            for (let i = 0; i < count; i++) {
+                particles.push({ x: Math.random() * w, y: Math.random() * h, vx: (Math.random() - 0.5) * 0.5, vy: (Math.random() - 0.5) * 0.5, r: Math.random() * 2 + 1 });
+            }
+
+            function draw() {
+                ctx.clearRect(0, 0, w, h);
+                const isLight = document.documentElement.dataset.theme === 'light';
+                const color = isLight ? '100,100,120' : '120,120,160';
+                for (let i = 0; i < particles.length; i++) {
+                    const p = particles[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    if (p.x < 0) p.x = w;
+                    if (p.x > w) p.x = 0;
+                    if (p.y < 0) p.y = h;
+                    if (p.y > h) p.y = 0;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(${color},0.3)`;
+                    ctx.fill();
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const p2 = particles[j];
+                        const dx = p.x - p2.x, dy = p.y - p2.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < maxDist) {
+                            ctx.beginPath();
+                            ctx.moveTo(p.x, p.y);
+                            ctx.lineTo(p2.x, p2.y);
+                            ctx.strokeStyle = `rgba(${color},${(1 - dist / maxDist) * 0.15})`;
+                            ctx.lineWidth = 0.5;
+                            ctx.stroke();
+                        }
+                    }
+                }
+                requestAnimationFrame(draw);
+            }
+            draw();
+
+            // Re-draw on theme change
+            const origToggle = toggleTheme;
+            toggleTheme = function() { origToggle(); setTimeout(draw, 50); };
+        })();
+    </script>
+</body>
+</html>
