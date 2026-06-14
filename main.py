@@ -11,8 +11,13 @@ import time
 import requests
 import base58
 import urllib.request
+import shutil
 from datetime import datetime, timedelta
 from xml.etree import ElementTree as ET
+import mimetypes
+mimetypes.add_type('image/webp', '.webp')
+mimetypes.add_type('image/png', '.png')
+mimetypes.add_type('image/svg+xml', '.svg')
 from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException, Request, Header, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
@@ -126,17 +131,34 @@ app.add_middleware(
 )
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
-if os.getenv("RENDER"):
-    try:
-        DB_PATH = "/var/data/orders.db"
-        os.makedirs("/var/data", exist_ok=True)
-    except:
-        DB_PATH = os.path.join(BASE_DIR, "orders.db")
-else:
-    DB_PATH = os.path.join(BASE_DIR, "orders.db")
+DB_DIR = os.path.join(BASE_DIR, "db")
+DATABASE_URL = os.getenv("DATABASE_URL", "")
 
-DATABASE_URL = f"sqlite:///{DB_PATH}"
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+if DATABASE_URL:
+    _is_sqlite = False
+    try:
+        engine = create_engine(DATABASE_URL)
+    except Exception as e:
+        logger.error(f"Failed to connect to database: {e}")
+        logger.error("For PostgreSQL, install: pip install psycopg2-binary")
+        raise
+else:
+    _is_sqlite = True
+    os.makedirs(DB_DIR, exist_ok=True)
+    if os.getenv("RENDER"):
+        try:
+            DB_PATH = "/var/data/orders.db"
+            os.makedirs("/var/data", exist_ok=True)
+        except:
+            DB_PATH = os.path.join(DB_DIR, "orders.db")
+    else:
+        DB_PATH = os.path.join(DB_DIR, "orders.db")
+        old_path = os.path.join(BASE_DIR, "orders.db")
+        if os.path.isfile(old_path) and not os.path.isfile(DB_PATH):
+            shutil.copy2(old_path, DB_PATH)
+            logger.info(f"Migrated DB from {old_path} to {DB_PATH}")
+    DATABASE_URL = f"sqlite:///{DB_PATH}"
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -161,46 +183,37 @@ class Order(Base):
 
 Base.metadata.create_all(bind=engine)
 
-# Migrations
+def column_exists(conn, table, column):
+    if _is_sqlite:
+        result = conn.execute(text(f"PRAGMA table_info({table})"))
+        return column in [row[1] for row in result.fetchall()]
+    else:
+        result = conn.execute(text(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_name = :table AND column_name = :column AND table_schema = 'public'"
+        ), {"table": table, "column": column})
+        return result.fetchone() is not None
+
+# Database-agnostic migrations
 try:
     with engine.connect() as conn:
-        result = conn.execute(text("PRAGMA table_info(orders)"))
-        columns = [row[1] for row in result.fetchall()]
-        if 'currency' not in columns:
-            conn.execute(text("ALTER TABLE orders ADD COLUMN currency TEXT"))
-            conn.execute(text("UPDATE orders SET currency = 'RUB'"))
-            conn.commit()
-        if 'order_type' not in columns:
-            conn.execute(text("ALTER TABLE orders ADD COLUMN order_type TEXT"))
-            conn.execute(text("UPDATE orders SET order_type = 'buy'"))
-            conn.commit()
-        if 'amount_rub' not in columns:
-            conn.execute(text("ALTER TABLE orders ADD COLUMN amount_rub REAL"))
-            conn.commit()
-        if 'rate_at_creation' not in columns:
-            conn.execute(text("ALTER TABLE orders ADD COLUMN rate_at_creation REAL"))
-            conn.commit()
-        if 'commission_percent' not in columns:
-            conn.execute(text("ALTER TABLE orders ADD COLUMN commission_percent REAL DEFAULT 3.0"))
-            conn.commit()
-        if 'commission_amount' not in columns:
-            conn.execute(text("ALTER TABLE orders ADD COLUMN commission_amount REAL DEFAULT 0.0"))
-            conn.commit()
-        result2 = conn.execute(text("PRAGMA table_info(support_tickets)"))
-        columns2 = [row[1] for row in result2.fetchall()]
-        if 'status' not in columns2:
-            conn.execute(text("ALTER TABLE support_tickets ADD COLUMN status TEXT DEFAULT 'pending'"))
-            conn.commit()
-        result3 = conn.execute(text("PRAGMA table_info(orders)"))
-        columns3 = [row[1] for row in result3.fetchall()]
-        if 'asset_type' not in columns3:
-            conn.execute(text("ALTER TABLE orders ADD COLUMN asset_type TEXT DEFAULT 'USDT'"))
-            conn.commit()
-        result4 = conn.execute(text("PRAGMA table_info(orders)"))
-        columns4 = [row[1] for row in result4.fetchall()]
-        if 'wallet' not in columns4:
-            conn.execute(text("ALTER TABLE orders ADD COLUMN wallet TEXT"))
-            conn.commit()
+        migration_set = [
+            ("orders", "currency", "TEXT", "UPDATE orders SET currency = 'RUB'"),
+            ("orders", "order_type", "TEXT", "UPDATE orders SET order_type = 'buy'"),
+            ("orders", "amount_rub", "REAL", None),
+            ("orders", "rate_at_creation", "REAL", None),
+            ("orders", "commission_percent", "REAL DEFAULT 3.0", None),
+            ("orders", "commission_amount", "REAL DEFAULT 0.0", None),
+            ("support_tickets", "status", "TEXT DEFAULT 'pending'", None),
+            ("orders", "asset_type", "TEXT DEFAULT 'USDT'", None),
+            ("orders", "wallet", "TEXT", None),
+        ]
+        for table, col, col_type, update_sql in migration_set:
+            if not column_exists(conn, table, col):
+                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {col_type}"))
+                if update_sql:
+                    conn.execute(text(update_sql))
+                conn.commit()
 except Exception as e:
     logger.error(f"Migration error: {e}")
 
@@ -247,11 +260,13 @@ USDT_TRC20_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"
 COINGECKO_IDS = {"SOLUSDT": "solana", "ETHUSDT": "ethereum", "ARBUSDT": "arbitrum", "BNBUSDT": "binancecoin"}
 
 def fetch_coin_usdt(symbol: str) -> Optional[float]:
-    """Fetch coin price in USDT via multi-source chain. Symbol like SOLUSDT"""
+    """Fetch coin price in USDT via multi-source chain. Symbol like SOLUSDT.
+    Prioritizes sources accessible from Russia."""
     dash = symbol.replace("USDT", "-USDT")
     underscore = symbol.replace("USDT", "_USDT")
+    lower = symbol.lower()
 
-    # 0. CoinGecko (free, rarely blocks server-side)
+    # 0. CoinGecko (free, accessible from RU)
     cg_id = COINGECKO_IDS.get(symbol)
     if cg_id:
         try:
@@ -263,7 +278,16 @@ def fetch_coin_usdt(symbol: str) -> Optional[float]:
         except Exception:
             pass
 
-    # 1. Bybit
+    # 1. HTX (Huobi) — accessible from Russia, fast
+    try:
+        r = requests.get(f'https://api.huobi.pro/market/detail/merged?symbol={lower}', timeout=5)
+        d = r.json()
+        if d.get('status') == 'ok' and 'tick' in d and 'close' in d['tick']:
+            return float(d['tick']['close'])
+    except Exception:
+        pass
+
+    # 2. Bybit — accessible from Russia
     try:
         r = requests.get(f'https://api.bybit.com/v5/market/tickers?category=spot&symbol={symbol}', timeout=5)
         d = r.json()
@@ -272,7 +296,7 @@ def fetch_coin_usdt(symbol: str) -> Optional[float]:
     except Exception:
         pass
 
-    # 2. KuCoin
+    # 3. KuCoin — accessible from Russia
     try:
         r = requests.get(f'https://api.kucoin.com/api/v1/market/orderbook/level1?symbol={dash}', timeout=5)
         d = r.json()
@@ -281,7 +305,7 @@ def fetch_coin_usdt(symbol: str) -> Optional[float]:
     except Exception:
         pass
 
-    # 3. MEXC
+    # 4. MEXC — accessible from Russia
     try:
         r = requests.get(f'https://api.mexc.com/api/v3/ticker/price?symbol={symbol}', timeout=5)
         d = r.json()
@@ -290,7 +314,16 @@ def fetch_coin_usdt(symbol: str) -> Optional[float]:
     except Exception:
         pass
 
-    # 4. Gate.io
+    # 5. CoinEx — accessible from Russia
+    try:
+        r = requests.get(f'https://api.coinex.com/v1/market/ticker?market={symbol}', timeout=5)
+        d = r.json()
+        if d.get('code') == 0 and 'ticker' in d and 'last' in d['ticker']:
+            return float(d['ticker']['last'])
+    except Exception:
+        pass
+
+    # 6. Gate.io — may work from Russia
     try:
         r = requests.get(f'https://api.gateio.ws/api/v4/spot/tickers?currency_pair={underscore}', timeout=5)
         d = r.json()
@@ -299,7 +332,16 @@ def fetch_coin_usdt(symbol: str) -> Optional[float]:
     except Exception:
         pass
 
-    # 5. OKX
+    # 7. Bitget — accessible from Russia
+    try:
+        r = requests.get(f'https://api.bitget.com/api/v2/spot/market/tickers?symbol={symbol}', timeout=5)
+        d = r.json()
+        if d.get('code') == '00000' and 'data' in d and len(d['data']) > 0:
+            return float(d['data'][0]['lastPr'])
+    except Exception:
+        pass
+
+    # 8. OKX — may be limited from Russia
     try:
         r = requests.get(f'https://www.okx.com/api/v5/market/ticker?instId={dash}', timeout=5)
         d = r.json()
@@ -308,12 +350,21 @@ def fetch_coin_usdt(symbol: str) -> Optional[float]:
     except Exception:
         pass
 
-    # 6. Binance (last — most likely to block server-side)
+    # 9. Binance (last — most likely to block RU servers)
     try:
-        r = requests.get(f'https://api.binance.com/api/v3/ticker/price?symbol={symbol}', timeout=5)
+        r = requests.get(f'https://api.binance.com/api/v3/ticker/price?symbol={symbol}', timeout=4)
         d = r.json()
         if 'price' in d:
             return float(d['price'])
+    except Exception:
+        pass
+
+    # 10. OKX alternate endpoint
+    try:
+        r = requests.get(f'https://www.okx.cab/api/v5/market/ticker?instId={dash}', timeout=5)
+        d = r.json()
+        if d.get('code') == '0' and 'data' in d and len(d['data']) > 0:
+            return float(d['data'][0]['last'])
     except Exception:
         pass
 
@@ -482,31 +533,20 @@ class BlockedWallet(Base):
 
 Base.metadata.create_all(bind=engine)
 
-# Migration: add new columns to existing chat_sessions table
+# Chat sessions column migrations (table exists now)
 try:
     with engine.connect() as conn:
-        conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN ip_address VARCHAR(45) DEFAULT ''"))
-        conn.commit()
-except Exception:
-    pass
-try:
-    with engine.connect() as conn:
-        conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN country_code VARCHAR(2) DEFAULT ''"))
-        conn.commit()
-except Exception:
-    pass
-try:
-    with engine.connect() as conn:
-        conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN country_name VARCHAR(100) DEFAULT ''"))
-        conn.commit()
-except Exception:
-    pass
-try:
-    with engine.connect() as conn:
-        conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN wallet VARCHAR(100) DEFAULT ''"))
-        conn.commit()
-except Exception:
-    pass
+        for col, col_type in [
+            ("ip_address", "VARCHAR(45) DEFAULT ''"),
+            ("country_code", "VARCHAR(2) DEFAULT ''"),
+            ("country_name", "VARCHAR(100) DEFAULT ''"),
+            ("wallet", "VARCHAR(100) DEFAULT ''"),
+        ]:
+            if not column_exists(conn, "chat_sessions", col):
+                conn.execute(text(f"ALTER TABLE chat_sessions ADD COLUMN {col} {col_type}"))
+                conn.commit()
+except Exception as e:
+    logger.error(f"Chat sessions migration error: {e}")
 
 # Seed demo support tickets if empty
 try:
@@ -1720,4 +1760,12 @@ async def chat_websocket(websocket: WebSocket, session_id: int, token: Optional[
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=port,
+        proxy_headers=True,
+        forwarded_allow_ips='*',
+        ws_ping_interval=25,
+        ws_ping_timeout=10,
+    )

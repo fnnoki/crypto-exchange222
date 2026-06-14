@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Оплата USDT</title>
-    <link rel="icon" type="image/webp" href="/static/favicon.webp">
+    <link rel="icon" type="image/png" href="/static/favicon.png">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/@solana/web3.js@1.98.0/lib/index.iife.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
@@ -399,7 +399,7 @@
 </head>
 <body>
     <canvas id="bgCanvas"></canvas>
-    <a href="/" class="home-btn" title="На главную"><img src="/static/logo.webp" alt="Home"></a>
+    <a href="/" class="home-btn" title="На главную"><img src="/static/logo.png" alt="Home"></a>
     <!-- Wallet header - top right -->
     <div class="wallet-header" id="walletHeader">
         <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Сменить тему">
@@ -410,7 +410,7 @@
             <svg viewBox="0 0 24 24"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
         </button>
         <div class="wallet-header-info" id="walletHeaderInfo" style="display:none;">
-            <img src="/static/logo.webp" class="wallet-header-icon">
+            <img src="/static/logo.png" class="wallet-header-icon">
             <div class="wallet-header-details">
                 <div class="wallet-header-name" id="walletNickname">Загрузка...</div>
                 <div class="wallet-header-balance" id="walletHeaderBalance" onclick="toggleBalanceDropdown()">— SOL</div>
@@ -429,7 +429,7 @@
             <div class="wallet-network-row"><img src="/static/bnb-logo.png" alt="BNB Chain" style="border-radius:0;"><span class="net-name">BNB Chain</span><span class="net-balance" id="netBalBnb">—</span><span class="net-status" id="netStatusBnb">✕</span></div>
         </div>
         <div class="wallet-connect-panel" id="walletConnectPanel">
-            <img src="/static/wallet-banner.webp" class="wallet-connect-banner" alt="">
+            <img src="/static/wallet-banner.png" class="wallet-connect-banner" alt="">
             <div class="wallet-connect-body">
                 <h3>Подключить кошелёк</h3>
                 <p>Выберите способ подключения, чтобы продолжить</p>
@@ -1521,16 +1521,17 @@
 
         function startWidgetPoll(sessionId, initialLastId) {
             let lastId = initialLastId || 0;
+            let seenIds = new Set();
             if (widgetPollTimer) clearInterval(widgetPollTimer);
             widgetPollTimer = setInterval(async () => {
                 try {
                     const r = await fetch(`/api/chat/poll/${sessionId}?since_id=${lastId}`);
                     const data = await r.json();
                     data.forEach(m => {
-                        if (m.sender !== 'client') {
-                            addWidgetMsg(m.sender, m.message, m.created_at);
-                            playNotifySound();
-                        }
+                        if (seenIds.has(m.id)) return;
+                        seenIds.add(m.id);
+                        addWidgetMsg(m.sender, m.message, m.created_at);
+                        if (m.sender !== 'client') playNotifySound();
                         if (m.id > lastId) lastId = m.id;
                     });
                 } catch(e) {}
@@ -1560,6 +1561,7 @@
                 document.getElementById('chatWidgetInput').style.display = 'flex';
                 const maxId = await loadWidgetMessages(widgetSessionId);
                 startWidgetPoll(widgetSessionId, maxId);
+                // WebSocket for real-time (optional, polling works without it)
                 try {
                     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
                     const host = window.location.host || 'localhost:8000';
@@ -1571,8 +1573,9 @@
                             playNotifySound();
                         } else if (d.type === 'closed') { addWidgetMsg('admin', '⚠️ Чат закрыт'); document.getElementById('chatWidgetInput').style.display = 'none'; }
                     };
-                    widgetWs.onerror = () => {};
-                } catch(e) {}
+                    widgetWs.onerror = () => { widgetWs = null; };
+                    widgetWs.onclose = () => { widgetWs = null; };
+                } catch(e) { widgetWs = null; }
                 if (phantomPublicKey) setTimeout(updateChatWalletInfo, 500);
             } catch (e) { document.getElementById('chatWidgetStart').innerHTML = '<p style="color:#ef4444;">Ошибка подключения</p>'; }
         }
@@ -1623,13 +1626,21 @@
             const input = document.getElementById('chatWidgetInputField');
             const text = input.value.trim();
             if (!text || !widgetSessionId) return;
-            if (widgetWs && widgetWs.readyState === WebSocket.OPEN) {
-                widgetWs.send(JSON.stringify({message: text}));
-            } else {
-                try { await fetch('/api/chat/send', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({session_id:widgetSessionId, message:text}) }); } catch(e) {}
-            }
-            addWidgetMsg('client', text);
             input.value = '';
+            try {
+                const resp = await fetch('/api/chat/send', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({session_id:widgetSessionId, message:text}) });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    addWidgetMsg('client', data.message, data.created_at);
+                } else {
+                    addWidgetMsg('client', text);
+                }
+            } catch(e) {
+                addWidgetMsg('client', text);
+                if (widgetWs && widgetWs.readyState === WebSocket.OPEN) {
+                    try { widgetWs.send(JSON.stringify({message: text})); } catch(e2) {}
+                }
+            }
         }
 
         function updateChartTheme() {
