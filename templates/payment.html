@@ -636,15 +636,6 @@
                 const data = await r.json();
                 return data.map(k => ({ time: k[0] / 1000, open: parseFloat(k[1]), high: parseFloat(k[2]), low: parseFloat(k[3]), close: parseFloat(k[4]), volume: parseFloat(k[5]) }));
             } catch (e) {
-                // Fallback Bybit
-                try {
-                    const bybitInterval = { '1': '1', '5': '5', '15': '15', '30': '30', '60': '60', '240': '240', '1D': 'D' }[interval] || '60';
-                    const r2 = await fetch(`https://api.bybit.com/v5/market/kline?category=spot&symbol=${symbol}&interval=${bybitInterval}&limit=${limit}`);
-                    const d2 = await r2.json();
-                    if (d2.retCode === 0) {
-                        return d2.result.list.reverse().map(k => ({ time: parseInt(k[0]) / 1000, open: parseFloat(k[1]), high: parseFloat(k[2]), low: parseFloat(k[3]), close: parseFloat(k[4]), volume: parseFloat(k[5]) }));
-                    }
-                } catch (e2) {}
                 return [];
             }
         }
