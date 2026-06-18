@@ -554,6 +554,81 @@ try:
 except Exception as e:
     logger.error(f"Seed error: {e}")
 
+# Seed demo orders if empty
+try:
+    db = SessionLocal()
+    if db.query(Order).count() == 0:
+        from datetime import timedelta
+        demo_orders = [
+            Order(order_id="A1B2C3D4", created_at=datetime.now()-timedelta(minutes=30),
+                  amount_usdt=50.0, amount_rub=3782.0, rate_at_creation=75.64,
+                  commission_percent=3.0, commission_amount=1.5,
+                  currency="RUB", bank="Сбербанк", phone="+7 999 123 45 67",
+                  deposit_address="TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+                  status="pending", order_type="buy", asset_type="USDT",
+                  wallet="9x4K8J3p2QmR7vW1nL5tY6cB0fA2dE3gH6i"),
+            Order(order_id="E5F6G7H8", created_at=datetime.now()-timedelta(hours=2),
+                  amount_usdt=120.0, amount_rub=9076.8, rate_at_creation=75.64,
+                  commission_percent=3.0, commission_amount=3.6,
+                  currency="RUB", bank="Тинькофф", phone="+7 916 555 77 88",
+                  deposit_address="SOL4K8J3p2QmR7vW1nL5tY6cB0fA2dE3gH6i",
+                  status="paid", order_type="buy", asset_type="SOL",
+                  wallet="5tY6cB0fA2dE3gH6i9x4K8J3p2QmR7vW1nL"),
+            Order(order_id="J9K0L1M2", created_at=datetime.now()-timedelta(days=1),
+                  amount_usdt=250.0, amount_rub=18910.0, rate_at_creation=75.64,
+                  commission_percent=3.0, commission_amount=7.5,
+                  currency="RUB", bank="Альфа-Банк", phone="+7 903 222 33 44",
+                  deposit_address="0x4K8J3p2QmR7vW1nL5tY6cB0fA2dE3gH6i",
+                  status="cancelled", order_type="buy", asset_type="ETH",
+                  wallet="0x9x4K8J3p2QmR7vW1nL5tY6cB0fA2dE3gH6i"),
+            Order(order_id="N3O4P5Q6", created_at=datetime.now()-timedelta(hours=12),
+                  amount_usdt=100.0, amount_rub=7564.0, rate_at_creation=75.64,
+                  commission_percent=3.0, commission_amount=3.0,
+                  currency="RUB", bank="Сбербанк", phone="+7 985 444 55 66",
+                  deposit_address="TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+                  status="paid", order_type="sell", asset_type="USDT",
+                  wallet="F8dE3gH6i9x4K8J3p2QmR7vW1nL5tY6cB0"),
+        ]
+        for o in demo_orders:
+            db.add(o)
+        db.commit()
+        logger.info(f"Seeded {len(demo_orders)} demo orders")
+    db.close()
+except Exception as e:
+    logger.error(f"Seed orders error: {e}")
+
+# Seed demo chat sessions and messages if empty
+try:
+    db = SessionLocal()
+    if db.query(ChatSession).count() == 0:
+        s1 = ChatSession(id=1, created_at=datetime.now()-timedelta(hours=3),
+                         status="active", unread=2,
+                         ip_address="195.123.222.134", country_code="RU", country_name="Russia",
+                         wallet="9x4K8J3p2QmR7vW1nL5tY6cB0fA2dE3gH6i")
+        s2 = ChatSession(id=2, created_at=datetime.now()-timedelta(days=1),
+                         status="closed", unread=0,
+                         ip_address="85.26.183.45", country_code="RU", country_name="Russia",
+                         wallet="5tY6cB0fA2dE3gH6i9x4K8J3p2QmR7vW1nL")
+        db.add(s1); db.add(s2)
+        db.commit()
+        db.add(ChatMessage(session_id=1, sender="client", message="Здравствуйте! Отправил 50 USDT, статус не меняется уже 15 минут",
+                           created_at=datetime.now()-timedelta(hours=3)))
+        db.add(ChatMessage(session_id=1, sender="admin", message="Здравствуйте! Проверяю ваш платёж. Подождите несколько минут, транзакция обрабатывается",
+                           created_at=datetime.now()-timedelta(hours=2, minutes=55)))
+        db.add(ChatMessage(session_id=1, sender="client", message="Спасибо, всё пришло! Заказ выполнен",
+                           created_at=datetime.now()-timedelta(hours=2, minutes=30)))
+        db.add(ChatMessage(session_id=2, sender="client", message="Добрый день! Какие лимиты на одну операцию?",
+                           created_at=datetime.now()-timedelta(days=1)))
+        db.add(ChatMessage(session_id=2, sender="admin", message="Добрый день! Минимальная сумма 10 USDT, максимальная 5000 USDT",
+                           created_at=datetime.now()-timedelta(days=1, minutes=-45)))
+        db.add(ChatMessage(session_id=2, sender="client", message="Понял, спасибо!",
+                           created_at=datetime.now()-timedelta(days=1, minutes=-40)))
+        db.commit()
+        logger.info("Seeded demo chat sessions and messages")
+    db.close()
+except Exception as e:
+    logger.error(f"Seed chat error: {e}")
+
 # Seed countries if empty
 try:
     db = SessionLocal()
