@@ -79,14 +79,10 @@ logger.info(f"TRON_ADDRESS set: {bool(os.getenv('TRON_ADDRESS'))}")
 logger.info(f"SOLANA_SEED set: {bool(os.getenv('SOLANA_SEED', os.getenv('TRON_SEED')))}")
 
 # Admin authentication
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
+ADMIN_PASSWORD = "123"
 ADMIN_SECRET = os.getenv("ADMIN_SECRET", secrets.token_hex(32))
 COMMISSION_PERCENT = 3.0
 HARDCODED_COIN_PRICES = {"SOL": 170, "ETH": 3500, "ARB": 0.75, "BNB": 600}
-
-if not ADMIN_PASSWORD:
-    ADMIN_PASSWORD = secrets.token_urlsafe(8)
-    logger.warning(f"ADMIN PASSWORD: {ADMIN_PASSWORD}")
 
 def generate_admin_token(password: str) -> str:
     return hmac.new(ADMIN_SECRET.encode(), password.encode(), hashlib.sha256).hexdigest()
