@@ -540,11 +540,12 @@ try:
     db = SessionLocal()
     if db.query(SupportTicket).count() == 0:
         demo_tickets = [
-            SupportTicket(email="ivan@mail.com", message="Здравствуйте! Я отправил 50 USDT, но статус заказа не меняется уже 15 минут. Заказ #A1B2C3D4. Помогите разобраться.", status="pending"),
-            SupportTicket(email="maria@yandex.ru", message="Добрый день! Не могу найти свой заказ. Ввожу ID на странице отслеживания, но пишет 'не найден'. Я перевела деньги, очень переживаю.", status="pending"),
-            SupportTicket(email="alex@bk.ru", message="Хотел бы уточнить по поводу лимитов. Есть ли ограничение на сумму одной операции? Планирую обменять 5000 USDT.", status="resolved"),
-            SupportTicket(email="elena@mail.ru", message="Здравствуйте! Совершил перевод на старый адрес USDT. Оплата прошла, но заказ не создавался. Можете вернуть средства?", status="pending"),
-            SupportTicket(email="sergey@gmail.com", message="Подскажите, какие банки поддерживаются для вывода рублей? Интересует Сбербанк и Тинькофф. И какие минимальные суммы?", status="resolved"),
+            SupportTicket(email="ivan@mail.com", message="Здравствуйте! Я отправил 50 USDT на указанный адрес 15 минут назад, но статус заказа #A1B2C3D4 всё ещё «Ожидает оплаты». Подскажите, что делать?", status="pending"),
+            SupportTicket(email="maria@yandex.ru", message="Добрый день! Перевела 120 USDT, заказ #E5F6G7H8. Транзакция подтверждена в сети, но на сайте статус не обновляется. Проверьте пожалуйста.", status="pending"),
+            SupportTicket(email="alex@bk.ru", message="Хотел бы узнать лимиты. Какая максимальная сумма одной операции? Планирую обменять 5000 USDT на рубли.", status="resolved"),
+            SupportTicket(email="elena@mail.ru", message="Здравствуйте! По ошибке отправил USDT на старый адрес. Транзакция прошла, но заказ не создавался. Можно вернуть средства?", status="pending"),
+            SupportTicket(email="sergey@gmail.com", message="Какие банки поддерживаются для вывода рублей? Интересует Сбербанк и Тинькофф. И какие минимальные суммы вывода?", status="resolved"),
+            SupportTicket(email="dmitry@mail.ru", message="Здравствуйте! Заказ #N3O4P5Q6 оплачен более часа назад, но средства на карту ещё не поступили. Сколько обычно занимает перевод?", status="pending"),
         ]
         for t in demo_tickets:
             db.add(t)
@@ -560,7 +561,7 @@ try:
     if db.query(Order).count() == 0:
         from datetime import timedelta
         demo_orders = [
-            Order(order_id="A1B2C3D4", created_at=datetime.now()-timedelta(minutes=30),
+            Order(order_id="A1B2C3D4", created_at=datetime.now()-timedelta(minutes=45),
                   amount_usdt=50.0, amount_rub=3782.0, rate_at_creation=75.64,
                   commission_percent=3.0, commission_amount=1.5,
                   currency="RUB", bank="Сбербанк", phone="+7 999 123 45 67",
@@ -571,23 +572,37 @@ try:
                   amount_usdt=120.0, amount_rub=9076.8, rate_at_creation=75.64,
                   commission_percent=3.0, commission_amount=3.6,
                   currency="RUB", bank="Тинькофф", phone="+7 916 555 77 88",
-                  deposit_address="SOL4K8J3p2QmR7vW1nL5tY6cB0fA2dE3gH6i",
+                  deposit_address="4K8J3p2QmR7vW1nL5tY6cB0fA2dE3gH6i",
                   status="paid", order_type="buy", asset_type="SOL",
                   wallet="5tY6cB0fA2dE3gH6i9x4K8J3p2QmR7vW1nL"),
-            Order(order_id="J9K0L1M2", created_at=datetime.now()-timedelta(days=1),
+            Order(order_id="J9K0L1M2", created_at=datetime.now()-timedelta(days=2),
                   amount_usdt=250.0, amount_rub=18910.0, rate_at_creation=75.64,
                   commission_percent=3.0, commission_amount=7.5,
-                  currency="RUB", bank="Альфа-Банк", phone="+7 903 222 33 44",
+                  currency="RUB", bank="Сбербанк", phone="+7 903 222 33 44",
                   deposit_address="0x4K8J3p2QmR7vW1nL5tY6cB0fA2dE3gH6i",
                   status="cancelled", order_type="buy", asset_type="ETH",
                   wallet="0x9x4K8J3p2QmR7vW1nL5tY6cB0fA2dE3gH6i"),
-            Order(order_id="N3O4P5Q6", created_at=datetime.now()-timedelta(hours=12),
+            Order(order_id="N3O4P5Q6", created_at=datetime.now()-timedelta(hours=18),
                   amount_usdt=100.0, amount_rub=7564.0, rate_at_creation=75.64,
                   commission_percent=3.0, commission_amount=3.0,
-                  currency="RUB", bank="Сбербанк", phone="+7 985 444 55 66",
+                  currency="RUB", bank="Альфа-Банк", phone="+7 985 444 55 66",
                   deposit_address="TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
                   status="paid", order_type="sell", asset_type="USDT",
                   wallet="F8dE3gH6i9x4K8J3p2QmR7vW1nL5tY6cB0"),
+            Order(order_id="K2L3M4N5", created_at=datetime.now()-timedelta(hours=6),
+                  amount_usdt=75.0, amount_rub=5673.0, rate_at_creation=75.64,
+                  commission_percent=3.0, commission_amount=2.25,
+                  currency="RUB", bank="Тинькофф", phone="+7 911 888 99 00",
+                  deposit_address="B0fA2dE3gH6i9x4K8J3p2QmR7vW1nL5tY6",
+                  status="pending", order_type="buy", asset_type="USDT",
+                  wallet="W1nL5tY6cB0fA2dE3gH6i9x4K8J3p2QmR7v"),
+            Order(order_id="P7R8S9T0", created_at=datetime.now()-timedelta(hours=48),
+                  amount_usdt=500.0, amount_rub=37820.0, rate_at_creation=75.64,
+                  commission_percent=3.0, commission_amount=15.0,
+                  currency="RUB", bank="Сбербанк", phone="+7 926 111 22 33",
+                  deposit_address="SOLp2QmR7vW1nL5tY6cB0fA2dE3gH6i9x4",
+                  status="cancelled", order_type="sell", asset_type="SOL",
+                  wallet="R7vW1nL5tY6cB0fA2dE3gH6i9x4K8J3p2Qm"),
         ]
         for o in demo_orders:
             db.add(o)
@@ -603,26 +618,36 @@ try:
     if db.query(ChatSession).count() == 0:
         s1 = ChatSession(id=1, created_at=datetime.now()-timedelta(hours=3),
                          status="active", unread=2,
-                         ip_address="195.123.222.134", country_code="RU", country_name="Russia",
+                         ip_address="195.122.210.10", country_code="RU", country_name="Russia",
                          wallet="9x4K8J3p2QmR7vW1nL5tY6cB0fA2dE3gH6i")
         s2 = ChatSession(id=2, created_at=datetime.now()-timedelta(days=1),
                          status="closed", unread=0,
                          ip_address="85.26.183.45", country_code="RU", country_name="Russia",
                          wallet="5tY6cB0fA2dE3gH6i9x4K8J3p2QmR7vW1nL")
-        db.add(s1); db.add(s2)
+        s3 = ChatSession(id=3, created_at=datetime.now()-timedelta(hours=12),
+                         status="active", unread=1,
+                         ip_address="176.59.12.89", country_code="RU", country_name="Russia",
+                         wallet="F8dE3gH6i9x4K8J3p2QmR7vW1nL5tY6cB0")
+        db.add(s1); db.add(s2); db.add(s3)
         db.commit()
-        db.add(ChatMessage(session_id=1, sender="client", message="Здравствуйте! Отправил 50 USDT, статус не меняется уже 15 минут",
+        db.add(ChatMessage(session_id=1, sender="client", message="Здравствуйте! Отправил 50 USDT, статус не меняется уже 15 минут. Заказ #A1B2C3D4",
                            created_at=datetime.now()-timedelta(hours=3)))
-        db.add(ChatMessage(session_id=1, sender="admin", message="Здравствуйте! Проверяю ваш платёж. Подождите несколько минут, транзакция обрабатывается",
+        db.add(ChatMessage(session_id=1, sender="admin", message="Здравствуйте! Проверяю ваш платёж. Подождите несколько минут, транзакция обрабатывается сетью",
                            created_at=datetime.now()-timedelta(hours=2, minutes=55)))
-        db.add(ChatMessage(session_id=1, sender="client", message="Спасибо, всё пришло! Заказ выполнен",
+        db.add(ChatMessage(session_id=1, sender="client", message="Спасибо, всё пришло! Заказ выполнен, деньги получил",
                            created_at=datetime.now()-timedelta(hours=2, minutes=30)))
         db.add(ChatMessage(session_id=2, sender="client", message="Добрый день! Какие лимиты на одну операцию?",
                            created_at=datetime.now()-timedelta(days=1)))
         db.add(ChatMessage(session_id=2, sender="admin", message="Добрый день! Минимальная сумма 10 USDT, максимальная 5000 USDT",
-                           created_at=datetime.now()-timedelta(days=1, minutes=-45)))
+                           created_at=datetime.now()-timedelta(days=1, hours=-1)))
         db.add(ChatMessage(session_id=2, sender="client", message="Понял, спасибо!",
-                           created_at=datetime.now()-timedelta(days=1, minutes=-40)))
+                           created_at=datetime.now()-timedelta(days=1, hours=-1, minutes=5)))
+        db.add(ChatMessage(session_id=3, sender="client", message="Здравствуйте! Отправил 100 USDT по заказу #N3O4P5Q6, когда поступят рубли на карту?",
+                           created_at=datetime.now()-timedelta(hours=12)))
+        db.add(ChatMessage(session_id=3, sender="admin", message="Здравствуйте! Ваш платёж получен, перевод на карту обычно занимает до 30 минут",
+                           created_at=datetime.now()-timedelta(hours=11, minutes=50)))
+        db.add(ChatMessage(session_id=3, sender="client", message="Уже прошло 40 минут, денег всё нет",
+                           created_at=datetime.now()-timedelta(hours=11, minutes=20)))
         db.commit()
         logger.info("Seeded demo chat sessions and messages")
     db.close()
